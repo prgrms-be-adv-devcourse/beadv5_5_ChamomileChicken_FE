@@ -1,0 +1,68 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build output
+dist/
+dist-ssr/
+build/
+out/
+
+# Vite
+.vite/
+
+# Environment variables
+.env
+.ENV
+.env.local
+.env.*.local
+
+# Editor - IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Editor - VS Code
+.vscode/
+
+# Editor - STS / Eclipse
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+
+# Editor - NetBeans
+/nbproject/private/
+/nbbuild/
+/nbdist/
+/.nb-gradle/
+
+# Windows
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Claude
+CLAUDE.md
+.claude/
