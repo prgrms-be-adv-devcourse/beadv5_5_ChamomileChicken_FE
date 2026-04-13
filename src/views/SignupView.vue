@@ -16,18 +16,48 @@ const verifiedToken = ref('')
 
 const error = ref('')
 const success = ref('')
+
+// 단계별 상태
+const emailChecked = ref(false)      // 중복 확인 통과 여부
+const emailCheckLoading = ref(false)
 const showCodeSection = ref(false)
 const showRegisterSection = ref(false)
 const emailDisabled = ref(false)
+const sendBtnLoading = ref(false)
 const sendBtnText = ref('인증번호 발송')
-const sendBtnDisabled = ref(false)
 
 function showError(msg) { error.value = msg; success.value = '' }
 function showSuccess(msg) { success.value = msg; error.value = '' }
 
-async function sendCode() {
+// 이메일 입력 변경 시 중복 확인 초기화
+function onEmailInput() {
+  emailChecked.value = false
+  showCodeSection.value = false
+  error.value = ''
+  success.value = ''
+  sendBtnText.value = '인증번호 발송'
+}
+
+async function checkEmail() {
   if (!email.value) { showError('이메일을 입력해주세요.'); return }
-  sendBtnDisabled.value = true
+  emailCheckLoading.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    await usersApi.emailCheck(email.value)
+    emailChecked.value = true
+    showSuccess('사용 가능한 이메일입니다.')
+  } catch (e) {
+    emailChecked.value = false
+    showError(e.response?.data?.message || '이미 사용 중인 이메일입니다.')
+  } finally {
+    emailCheckLoading.value = false
+  }
+}
+
+async function sendCode() {
+  if (!emailChecked.value) { showError('먼저 이메일 중복 확인을 해주세요.'); return }
+  sendBtnLoading.value = true
   sendBtnText.value = '발송 중...'
   try {
     await emailApi.sendCode(email.value)
@@ -38,7 +68,7 @@ async function sendCode() {
     showError(e.response?.data?.message || '인증번호 발송에 실패했습니다.')
     sendBtnText.value = '인증번호 발송'
   } finally {
-    sendBtnDisabled.value = false
+    sendBtnLoading.value = false
   }
 }
 
@@ -46,12 +76,10 @@ async function verifyCode() {
   if (!code.value) { showError('인증번호를 입력해주세요.'); return }
   try {
     const res = await emailApi.verifyCode(email.value, code.value)
-    // 응답이 ApiResponseDto로 래핑된 경우와 그렇지 않은 경우 모두 대응
     verifiedToken.value = res.data?.data?.verifiedToken ?? res.data?.verifiedToken
     showSuccess('이메일 인증이 완료되었습니다.')
     showCodeSection.value = false
     emailDisabled.value = true
-    sendBtnDisabled.value = true
     showRegisterSection.value = true
   } catch (e) {
     showError(e.response?.data?.message || '인증에 실패했습니다.')
@@ -91,21 +119,33 @@ async function register() {
         {{ success }}
       </div>
 
-      <div class="space-y-5">
-        <!-- 이메일 + 인증번호 발송 -->
+      <div class="space-y-4">
+
+        <!-- 1단계: 이메일 + 중복 확인 -->
         <div>
           <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1.5">이메일</label>
           <div class="flex gap-2">
-            <input v-model="email" type="email" placeholder="이메일 입력" :disabled="emailDisabled"
+            <input v-model="email" @input="onEmailInput" type="email" placeholder="이메일 입력" :disabled="emailDisabled"
               class="flex-1 px-4 py-3 bg-gray-50 dark:bg-[#121212] border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors disabled:opacity-50" />
-            <button @click="sendCode" :disabled="sendBtnDisabled"
-              class="px-3 py-3 bg-gray-900 dark:bg-white text-white dark:text-black font-bold rounded-lg text-xs hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors whitespace-nowrap disabled:opacity-50">
-              {{ sendBtnText }}
+            <button @click="checkEmail" :disabled="emailCheckLoading || emailDisabled"
+              :class="emailChecked
+                ? 'bg-green-600 dark:bg-green-500 text-white cursor-default'
+                : 'bg-gray-900 dark:bg-white text-white dark:text-black hover:bg-gray-700 dark:hover:bg-gray-200'"
+              class="px-3 py-3 font-bold rounded-lg text-xs transition-colors whitespace-nowrap disabled:opacity-50">
+              {{ emailChecked ? '확인 완료' : (emailCheckLoading ? '확인 중...' : '중복 확인') }}
             </button>
           </div>
         </div>
 
-        <!-- 인증번호 확인 -->
+        <!-- 2단계: 인증번호 발송 (중복 확인 통과 후 활성화) -->
+        <div v-if="!emailDisabled">
+          <button @click="sendCode" :disabled="!emailChecked || sendBtnLoading"
+            class="w-full py-3 bg-gray-900 dark:bg-white text-white dark:text-black font-bold rounded-lg text-sm hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+            {{ sendBtnText }}
+          </button>
+        </div>
+
+        <!-- 3단계: 인증번호 입력 -->
         <div v-if="showCodeSection">
           <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1.5">인증번호</label>
           <div class="flex gap-2">
@@ -118,8 +158,8 @@ async function register() {
           </div>
         </div>
 
-        <!-- 나머지 정보 -->
-        <div v-if="showRegisterSection" class="space-y-5">
+        <!-- 4단계: 나머지 정보 -->
+        <div v-if="showRegisterSection" class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1.5">이름</label>
             <input v-model="name" type="text" placeholder="이름 입력"
@@ -140,6 +180,7 @@ async function register() {
             회원가입
           </button>
         </div>
+
       </div>
 
       <p class="text-center text-sm text-gray-500 mt-6">
