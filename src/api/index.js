@@ -15,24 +15,42 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+let isRefreshing = false
+
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const auth = useAuthStore()
-    if (error.response?.status === 401) {
+    const originalRequest = error.config
+
+    // 401이고, 토큰이 있고, 아직 재시도 안 한 경우에만 reissue 시도
+    // _skipReissue 플래그가 있으면 건너뜀 (fetchUser 등 실패해도 괜찮은 요청)
+    if (
+      error.response?.status === 401 &&
+      auth.accessToken &&
+      !originalRequest._retry &&
+      !isRefreshing &&
+      !originalRequest._skipReissue
+    ) {
+      originalRequest._retry = true
+      isRefreshing = true
       try {
         const res = await axios.post('/api/v1/auth/reissue', {}, { withCredentials: true })
-        const newToken = res.data?.data?.access_token
+        const newToken = res.data?.data?.accessToken ?? res.data?.accessToken ?? res.data?.data?.access_token ?? res.data?.access_token
         if (newToken) {
           auth.setToken(newToken)
-          error.config.headers.Authorization = `Bearer ${newToken}`
-          return axios(error.config)
+          originalRequest.headers.Authorization = `Bearer ${newToken}`
+          isRefreshing = false
+          return axios(originalRequest)
         }
       } catch {
         auth.clearToken()
+        isRefreshing = false
         router.push({ name: 'Login' })
       }
+      isRefreshing = false
     }
+
     return Promise.reject(error)
   }
 )
