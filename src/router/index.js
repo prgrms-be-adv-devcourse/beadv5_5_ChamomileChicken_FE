@@ -35,9 +35,21 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/seller/products',
+    name: 'SellerProductList',
+    component: () => import('@/views/seller/ProductListView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/seller/products/new',
     name: 'ProductForm',
     component: () => import('@/views/seller/ProductFormView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/seller/products/:productId/edit',
+    name: 'ProductEdit',
+    component: () => import('@/views/seller/ProductEditView.vue'),
     meta: { requiresAuth: true },
   },
   {
