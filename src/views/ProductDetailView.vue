@@ -1,10 +1,11 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { productsApi } from '@/api/products'
 import { ordersApi } from '@/api/orders'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import { loadKakaoMaps } from '@/utils/loadKakao'
 
 const route = useRoute()
 const router = useRouter()
@@ -14,6 +15,8 @@ const product = ref(null)
 const schedules = ref([])
 const reviews = ref([])
 const likedMap = ref({}) // scheduleId → likeId
+const mapEl = ref(null)
+const mapError = ref('')
 
 const lightboxImg = ref('')
 const showLightbox = ref(false)
@@ -33,6 +36,13 @@ const reviewSuccess = ref('')
 
 const depositBalance = computed(() => auth.user?.deposit ?? 0)
 const totalPrice = computed(() => (product.value?.price ?? 0) * quantity.value)
+const productLatitude = computed(() => Number(product.value?.latitude ?? product.value?.lat ?? 0))
+const productLongitude = computed(() => Number(product.value?.longitude ?? product.value?.lng ?? product.value?.lon ?? 0))
+const productAddress = computed(() => {
+  const base = product.value?.roadAddress ?? product.value?.address ?? ''
+  const detail = product.value?.detailAddress ?? ''
+  return [base, detail].filter(Boolean).join(' ')
+})
 
 const SCHEDULE_STATUS = {
   AVAILABLE: { label: '예약 가능', color: 'bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300' },
@@ -42,7 +52,42 @@ const SCHEDULE_STATUS = {
 }
 
 function scheduleStatus(status) {
+  const normalizedStatus = String(status ?? '').trim().toUpperCase()
+  const normalizedLabel = String(status ?? '').trim()
+
+  if (
+    normalizedStatus === 'AVAILABLE' ||
+    normalizedLabel === '예약 가능' ||
+    normalizedLabel === '예약가능'
+  ) {
+    return { label: SCHEDULE_STATUS.AVAILABLE.label, color: 'bg-lime-50 dark:bg-lime-900/40 text-lime-700 dark:text-lime-300' }
+  }
+
   return SCHEDULE_STATUS[status] ?? { label: status, color: 'bg-gray-100 dark:bg-gray-700 text-gray-500' }
+}
+
+function canReserveSchedule(schedule) {
+  return String(schedule?.status ?? '').trim().toUpperCase() !== 'FULL'
+}
+
+async function renderMap() {
+  if (!mapEl.value || !productLatitude.value || !productLongitude.value) return
+
+  try {
+    const kakao = await loadKakaoMaps()
+    const position = new kakao.maps.LatLng(productLatitude.value, productLongitude.value)
+    const map = new kakao.maps.Map(mapEl.value, {
+      center: position,
+      level: 3,
+    })
+
+    new kakao.maps.Marker({
+      position,
+      map,
+    })
+  } catch {
+    mapError.value = '지도를 불러오지 못했습니다.'
+  }
 }
 
 onMounted(async () => {
@@ -55,6 +100,8 @@ onMounted(async () => {
   product.value = productRes.data?.data ?? productRes.data
   schedules.value = scheduleRes.data?.data ?? scheduleRes.data ?? []
 
+  await nextTick()
+  await renderMap()
   loadReviews()
 
   if (auth.isLoggedIn) {
@@ -181,7 +228,6 @@ function formatDate(dt) { return dt ? dt.substring(0, 10) : '' }
 <template>
   <div class="bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-white antialiased min-h-screen py-10">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-
       <div class="flex items-center justify-between mb-8">
         <RouterLink to="/products"
           class="inline-flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
@@ -194,7 +240,6 @@ function formatDate(dt) { return dt ? dt.substring(0, 10) : '' }
       </div>
 
       <template v-if="product">
-        <!-- 상품 정보 -->
         <div class="bg-white dark:bg-[#1e1e1e] rounded-2xl p-8 border border-gray-200 dark:border-gray-800 mb-10 shadow-lg">
           <p class="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-2">판매자: {{ product.sellerName }}</p>
           <h2 class="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-4">{{ product.title }}</h2>
@@ -204,7 +249,24 @@ function formatDate(dt) { return dt ? dt.substring(0, 10) : '' }
           </div>
         </div>
 
-        <!-- 상품 이미지 -->
+        <div v-if="productLatitude && productLongitude"
+          class="bg-white dark:bg-[#1e1e1e] rounded-2xl p-8 border border-gray-200 dark:border-gray-800 mb-10 shadow-lg">
+          <div class="flex items-start justify-between gap-4 mb-4">
+            <div>
+              <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100">위치</h3>
+              <p v-if="productAddress" class="mt-2 text-sm text-gray-500 dark:text-gray-400 break-words">
+                {{ productAddress }}
+              </p>
+            </div>
+            <span v-if="product.zonecode"
+              class="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+              {{ product.zonecode }}
+            </span>
+          </div>
+          <div ref="mapEl" class="w-full h-80 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#121212]"></div>
+          <p v-if="mapError" class="mt-3 text-sm text-red-500">{{ mapError }}</p>
+        </div>
+
         <div v-if="product.imagePaths?.length" class="mb-10">
           <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">상품 이미지</h3>
           <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -216,7 +278,6 @@ function formatDate(dt) { return dt ? dt.substring(0, 10) : '' }
           </div>
         </div>
 
-        <!-- 라이트박스 -->
         <div v-if="showLightbox"
           class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
           @click="closeLightbox">
@@ -231,7 +292,6 @@ function formatDate(dt) { return dt ? dt.substring(0, 10) : '' }
             @click.stop />
         </div>
 
-        <!-- 스케줄 -->
         <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-6">예약 가능 일정</h3>
 
         <div v-if="schedules.length"
@@ -242,7 +302,7 @@ function formatDate(dt) { return dt ? dt.substring(0, 10) : '' }
                 <tr>
                   <th class="px-6 py-4 font-medium">날짜</th>
                   <th class="px-6 py-4 font-medium">시간</th>
-                  <th class="px-6 py-4 font-medium">인원</th>
+                  <th class="px-6 py-4 font-medium">예약 가능 인원</th>
                   <th class="px-6 py-4 font-medium">상태</th>
                   <th class="px-6 py-4 font-medium text-right">예약 / 찜</th>
                 </tr>
@@ -252,7 +312,7 @@ function formatDate(dt) { return dt ? dt.substring(0, 10) : '' }
                   class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors">
                   <td class="px-6 py-4 whitespace-nowrap text-gray-800 dark:text-gray-200 font-medium">{{ schedule.scheduleDt }}</td>
                   <td class="px-6 py-4">{{ schedule.startTime }} ~ {{ schedule.endTime }}</td>
-                  <td class="px-6 py-4">{{ schedule.maxCapacity ?? schedule.capacity }}명</td>
+                  <td class="px-6 py-4">{{ schedule.capacity }}명 / 최대 {{ product.maxCapacity }}명</td>
                   <td class="px-6 py-4">
                     <span :class="scheduleStatus(schedule.status).color" class="px-2.5 py-1 rounded-full text-xs font-medium">
                       {{ scheduleStatus(schedule.status).label }}
@@ -260,7 +320,6 @@ function formatDate(dt) { return dt ? dt.substring(0, 10) : '' }
                   </td>
                   <td class="px-6 py-4 text-right">
                     <div class="flex items-center justify-end gap-2">
-                      <!-- 찜 버튼 -->
                       <button @click="toggleLike(schedule)"
                         class="p-2 rounded-lg border transition-colors"
                         :class="likedMap[schedule.id]
@@ -271,9 +330,8 @@ function formatDate(dt) { return dt ? dt.substring(0, 10) : '' }
                             d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                         </svg>
                       </button>
-                      <!-- 예약 버튼 -->
                       <button @click="openModal(schedule)"
-                        :disabled="schedule.status !== 'AVAILABLE'"
+                        :disabled="!canReserveSchedule(schedule)"
                         class="px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-black font-bold rounded-lg text-sm hover:bg-gray-700 dark:hover:bg-gray-200 transition disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed">
                         예약하기
                       </button>
@@ -289,10 +347,8 @@ function formatDate(dt) { return dt ? dt.substring(0, 10) : '' }
           <p class="text-gray-400 dark:text-gray-500">등록된 일정이 없습니다.</p>
         </div>
 
-        <!-- 리뷰 섹션 -->
         <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-6">리뷰</h3>
 
-        <!-- 리뷰 작성 (로그인 시) -->
         <div v-if="auth.isLoggedIn" class="bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-800 rounded-2xl p-6 mb-6">
           <h4 class="font-bold text-gray-800 dark:text-gray-100 mb-4">리뷰 작성</h4>
 
@@ -317,7 +373,6 @@ function formatDate(dt) { return dt ? dt.substring(0, 10) : '' }
           </button>
         </div>
 
-        <!-- 리뷰 목록 -->
         <div v-if="reviews.length" class="space-y-4 mb-10">
           <div v-for="review in reviews" :key="review.id"
             class="bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-800 rounded-2xl p-6">
@@ -344,11 +399,9 @@ function formatDate(dt) { return dt ? dt.substring(0, 10) : '' }
         <div v-else class="bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-800 rounded-2xl p-10 text-center mb-10">
           <p class="text-gray-400 dark:text-gray-500 text-sm">등록된 리뷰가 없습니다.</p>
         </div>
-
       </template>
     </div>
 
-    <!-- 예약 모달 -->
     <div v-if="showModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
       <div class="bg-white dark:bg-[#1e1e1e] rounded-2xl p-8 w-full max-w-sm shadow-2xl border border-gray-200 dark:border-gray-800">
         <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-6">예약 확인</h3>
@@ -396,6 +449,5 @@ function formatDate(dt) { return dt ? dt.substring(0, 10) : '' }
         </div>
       </div>
     </div>
-
   </div>
 </template>
