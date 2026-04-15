@@ -157,7 +157,7 @@ async function submitReview() {
     })
     reviewContent.value = ''
     reviewRating.value = 5
-    reviewSuccess.value = '리뷰가 등록 되었습니다.'
+    reviewSuccess.value = '리뷰가 등록되었습니다.'
     await loadReviews()
   } catch (e) {
     reviewError.value = e.response?.data?.message || '리뷰 등록에 실패했습니다.'
