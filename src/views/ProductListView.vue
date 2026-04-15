@@ -18,7 +18,8 @@ onMounted(async () => {
   }
   try {
     const res = await productsApi.list({ thisPage: 0, pageSize: 20, status: 'ENABLE' })
-    products.value = res.data.data.items || []
+    const d = res.data?.data
+    products.value = Array.isArray(d) ? d : (d?.items ?? d?.content ?? [])
   } catch {
     products.value = []
   } finally {
@@ -46,9 +47,9 @@ function formatPrice(price) {
         <div class="flex items-center gap-2">
           <ThemeToggle />
           <template v-if="auth.isLoggedIn">
-            <RouterLink v-if="auth.isSeller" to="/seller/products/new"
+            <RouterLink v-if="auth.isSeller" to="/seller/products"
               class="bg-transparent border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 px-4 py-2 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-              상품 등록
+              상품 관리
             </RouterLink>
             <RouterLink to="/mypage"
               class="bg-transparent border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 px-4 py-2 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">

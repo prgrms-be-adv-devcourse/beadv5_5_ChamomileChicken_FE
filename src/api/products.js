@@ -22,11 +22,20 @@ export const productsApi = {
   createSchedule: (productId, body) =>
     api.post(`/products/${productId}/schedules`, body),
 
+  updateSchedule: (productId, scheduleId, body) =>
+    api.put(`/products/${productId}/schedules/${scheduleId}`, body),
+
+  deleteSchedule: (productId, scheduleId) =>
+    api.delete(`/products/${productId}/schedules/${scheduleId}`),
+
   reviews: (productId) =>
     api.get(`/products/${productId}/reviews`),
 
   createReview: (productId, body) =>
     api.post(`/products/${productId}/reviews`, body),
+
+  updateReview: (productId, reviewId, body) =>
+    api.put(`/products/${productId}/reviews/${reviewId}`, body),
 
   deleteReview: (productId, reviewId) =>
     api.delete(`/products/${productId}/reviews/${reviewId}`),
