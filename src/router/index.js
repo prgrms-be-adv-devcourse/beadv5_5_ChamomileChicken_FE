@@ -19,6 +19,11 @@ const routes = [
     meta: { guestOnly: true },
   },
   {
+    path: '/oauth2/callback',
+    name: 'OAuth2Callback',
+    component: () => import('@/views/OAuth2CallbackView.vue'),
+  },
+  {
     path: '/products',
     name: 'ProductList',
     component: () => import('@/views/ProductListView.vue'),
