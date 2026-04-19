@@ -65,8 +65,6 @@ else
   exit 1
 fi
 
-kubectl --kubeconfig /home/ubuntu/.kube/config apply -f /home/ubuntu/apps/data/k3s-service/${SERVICE}-service.yml
-
 echo "Restarting deployment: $SERVICE-service"
 kubectl --kubeconfig "$KUBECONFIG_PATH" rollout restart deployment/"$SERVICE-service"
 
