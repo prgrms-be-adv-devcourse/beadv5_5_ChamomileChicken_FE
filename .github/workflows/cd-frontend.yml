@@ -60,7 +60,7 @@ jobs:
 
   deploy:
     needs: build-and-push
-    runs-on: [ self-hosted, ec2, docker ]
+    runs-on: [ runner-fe, ec2, docker ]
 
     steps:
       - name: Checkout
