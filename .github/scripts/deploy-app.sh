@@ -53,7 +53,8 @@ create_secret_if_exists "${SERVICE}-secret" "$ENV_DIR/${SERVICE}_secret.env"
 # 3. deployment yaml 적용
 if [ -f "$K3S_DIR/${SERVICE}-service.yml" ]; then
   echo "Applying Kubernetes YAML: $K3S_DIR/${SERVICE}-service.yml"
-  envsubst "$DOCKERHUB_USERNAME $IMAGE_TAG" < "$K3S_DIR/${SERVICE}-service.yml" | kubectl apply -f -
+  export DOCKERHUB_USERNAME IMAGE_TAG
+  envsubst '$DOCKERHUB_USERNAME $IMAGE_TAG' < "$K3S_DIR/${SERVICE}-service.yml" | kubectl apply -f -
 else
   echo "YAML file not found: $K3S_DIR/${SERVICE}-service.yml"
   exit 1
@@ -65,6 +66,6 @@ kubectl rollout restart deployment/"$SERVICE-service"
 
 # 5. rollout 상태 확인
 echo "Waiting for rollout status..."
-kubectl rollout status deployment/"$SERVICE-service" --timeout=120s
+kubectl rollout status deployment/"$SERVICE-service" --timeout=300s
 
 echo "Deployment completed: $SERVICE"
