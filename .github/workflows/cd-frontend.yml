@@ -115,6 +115,8 @@ jobs:
           /home/ubuntu/apps/deploy/scripts/deploy-app.sh frontend
 
       - name: Health check
+        env:
+          KUBECONFIG: /home/ubuntu/.kube/config
         run: |
           kubectl rollout status deployment/frontend-service --timeout=120s
 
