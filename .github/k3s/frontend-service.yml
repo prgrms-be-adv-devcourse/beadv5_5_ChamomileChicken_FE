@@ -69,8 +69,9 @@ spec:
   ports:
     - port: 3000
       targetPort: 3000
+      nodePort: 30080
       protocol: TCP
-  type: ClusterIP
+  type: NodePort
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
