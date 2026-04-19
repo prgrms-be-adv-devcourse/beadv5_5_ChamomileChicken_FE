@@ -6,6 +6,8 @@ ENV_DIR=/home/ubuntu/apps/deploy/env
 K3S_DIR=/home/ubuntu/apps/data/k3s-service
 DOCKERHUB_USERNAME="${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}"
 IMAGE_TAG="${IMAGE_TAG:?IMAGE_TAG is required}"
+KUBECONFIG_PATH="/home/ubuntu/.kube/config"
+export KUBECONFIG
 
 if [ -z "$SERVICE" ]; then
   echo "Usage: deploy-apps.sh <service-name>"
