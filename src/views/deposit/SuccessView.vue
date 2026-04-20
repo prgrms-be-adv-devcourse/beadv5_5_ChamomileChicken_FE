@@ -1,12 +1,15 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import { paymentsApi } from '@/api/payments'
+import { extractApiMessage } from '@/utils/api'
 
 const route = useRoute()
+const auth = useAuthStore()
 const paymentKey = route.query.paymentKey
-const paymentId = route.query.orderId   // Toss의 orderId = depositPrepare의 paymentId
-const amount = route.query.amount
+const depositPaymentsId = route.query.orderId
+const amount = Number(route.query.amount ?? 0)
 
 const confirmed = ref(false)
 const error = ref('')
@@ -15,10 +18,13 @@ function formatPrice(p) { return Number(p).toLocaleString('ko-KR') }
 
 onMounted(async () => {
   try {
-    await paymentsApi.depositConfirm(paymentId, paymentKey, amount)
+    await paymentsApi.depositConfirm(depositPaymentsId, paymentKey, amount)
+    if (auth.isLoggedIn) {
+      await auth.fetchUser()
+    }
     confirmed.value = true
   } catch (e) {
-    error.value = e.response?.data?.message || '충전 승인 처리 중 오류가 발생했습니다.'
+    error.value = extractApiMessage(e, '충전 승인 처리 중 오류가 발생했습니다.')
   }
 })
 </script>
