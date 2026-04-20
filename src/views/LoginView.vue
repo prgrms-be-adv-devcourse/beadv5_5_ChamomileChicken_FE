@@ -41,7 +41,7 @@ function loginWithSocial(provider) {
 
     <div class="w-full max-w-sm bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-800 rounded-2xl p-8 shadow-2xl">
       <div class="text-center mb-10">
-        <h2 class="text-3xl font-bold tracking-tight">Jaba</h2>
+        <h2 class="text-3xl font-bold tracking-tight">Jaba Class</h2>
         <p class="text-sm text-gray-500 dark:text-gray-500 mt-2">서비스 이용을 위해 로그인해주세요</p>
       </div>
 

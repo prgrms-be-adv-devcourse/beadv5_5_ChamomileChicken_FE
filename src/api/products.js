@@ -29,7 +29,7 @@ export const productsApi = {
     api.delete(`/products/${productId}/schedules/${scheduleId}`),
 
   reviews: (productId) =>
-    api.get(`/products/${productId}/reviews`),
+    api.get(`/products/${productId}/reviewList`),
 
   createReview: (productId, body) =>
     api.post(`/products/${productId}/reviews`, body),
@@ -51,4 +51,7 @@ export const productsApi = {
 
   myReviews: () =>
     api.get('/products/me/reviews'),
+
+  esMigrate: () =>
+    api.post('/products/es-migrate'),
 }
