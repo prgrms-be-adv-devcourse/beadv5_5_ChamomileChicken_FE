@@ -1,16 +1,16 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { paymentsApi } from '@/api/payments'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import { extractApiData, extractApiMessage } from '@/utils/api'
 
-const router = useRouter()
 const auth = useAuthStore()
 
 const amountInput = ref('')
 const error = ref('')
 const tossClientKey = import.meta.env.VITE_TOSS_CLIENT_KEY
+const isSubmitting = ref(false)
 
 onMounted(async () => {
   if (!auth.user) await auth.fetchUser()
@@ -26,25 +26,41 @@ function resetAmount() {
 }
 
 async function startPayment() {
+  if (isSubmitting.value) return
+
   const amount = parseInt(amountInput.value)
   if (!amount || amount < 1000) {
     error.value = '충전 금액은 최소 1,000원 이상이어야 합니다.'
     return
   }
+
+  isSubmitting.value = true
+
   try {
     const res = await paymentsApi.depositPrepare(auth.user?.userId, amount)
-    const { paymentId } = res.data.data
+    const data = extractApiData(res)
+    const depositPaymentsId = data?.depositPaymentsId
+
+    if (!depositPaymentsId) {
+      throw new Error('충전 결제 정보를 생성하지 못했습니다.')
+    }
+
+    if (!tossClientKey || !window.TossPayments) {
+      throw new Error('토스 결제 설정을 확인해주세요.')
+    }
 
     const toss = window.TossPayments(tossClientKey)
     toss.requestPayment('카드', {
       amount,
-      orderId: paymentId,
+      orderId: depositPaymentsId,
       orderName: '예치금 충전',
       successUrl: window.location.origin + '/deposit/success',
       failUrl: window.location.origin + '/deposit/fail',
     })
   } catch (e) {
-    error.value = e.response?.data?.message || '결제 준비에 실패했습니다.'
+    error.value = extractApiMessage(e, '결제 준비에 실패했습니다.')
+  } finally {
+    isSubmitting.value = false
   }
 }
 
@@ -98,8 +114,9 @@ function formatPrice(p) { return Number(p).toLocaleString('ko-KR') }
         </div>
 
         <button @click="startPayment"
+          :disabled="isSubmitting"
           class="w-full py-3.5 bg-gray-900 dark:bg-white text-white dark:text-black font-bold rounded-lg text-sm hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors">
-          충전하기
+          {{ isSubmitting ? '처리 중...' : '충전하기' }}
         </button>
       </div>
     </div>

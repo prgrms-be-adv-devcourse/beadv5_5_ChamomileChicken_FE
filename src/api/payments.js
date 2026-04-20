@@ -1,18 +1,22 @@
 import api from './index'
 
 export const paymentsApi = {
-  prepare: (body) =>
-    api.post('/payments/prepare', body),
+  prepare: ({ productId, orderId, userId, paymentAmount, depositAmount }) =>
+    api.post('/payments/prepare', {
+      productId,
+      orderId,
+      userId,
+      paymentMethod: 'TOSS',
+      paymentAmount,
+      depositAmount,
+    }),
 
   confirm: (orderId, paymentKey, amount) =>
     api.post('/payments/confirm', { orderId, paymentKey, amount }),
 
-  refund: (orderId, reason) =>
-    api.post('/refunds', { orderId, reason }),
-
   depositPrepare: (userId, amount) =>
     api.post('/payments/deposits/prepare', { userId, paymentMethod: 'CARD', amount }),
 
-  depositConfirm: (paymentId, paymentKey, amount) =>
-    api.post('/payments/deposits/confirm', { paymentId, paymentKey, amount }),
+  depositConfirm: (depositPaymentsId, paymentKey, amount) =>
+    api.post('/payments/deposits/confirm', { depositPaymentsId, paymentKey, amount }),
 }
