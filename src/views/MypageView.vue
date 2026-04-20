@@ -39,6 +39,7 @@ const orders = ref([])
 const ordersError = ref('')
 const ordersLoading = ref(false)
 const selectedOrder = ref(null)
+const selectedOrderId = ref(null)
 const selectedOrderLoading = ref(false)
 const orderFilter = ref('ALL')
 const orderActionLoadingId = ref(null)
@@ -127,6 +128,13 @@ async function fetchOrders() {
 }
 
 async function loadOrderDetail(orderId) {
+  if (selectedOrderId.value === orderId && selectedOrder.value?.id === orderId && !selectedOrderLoading.value) {
+    selectedOrderId.value = null
+    selectedOrder.value = null
+    return
+  }
+
+  selectedOrderId.value = orderId
   selectedOrderLoading.value = true
   ordersError.value = ''
 
@@ -138,6 +146,7 @@ async function loadOrderDetail(orderId) {
     }
   } catch (e) {
     ordersError.value = extractApiMessage(e, '주문 상세를 불러오지 못했습니다.')
+    selectedOrderId.value = null
   } finally {
     selectedOrderLoading.value = false
   }
@@ -410,7 +419,7 @@ function hasRefundInfoError(orderId) { return Boolean(orderId && refundInfoError
 
         <div v-else class="space-y-3">
           <div v-for="order in orders" :key="order.id"
-            class="bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex gap-4 items-start">
+            class="bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex flex-wrap gap-4 items-start">
 
             <div class="flex-1 min-w-0 space-y-1">
               <p class="font-bold text-base text-gray-800 dark:text-gray-100">주문 {{ order.id }}</p>
@@ -428,14 +437,14 @@ function hasRefundInfoError(orderId) { return Boolean(orderId && refundInfoError
               </div>
               <div v-else-if="order.status === 'REFUNDED' && hasRefundInfoError(order.id)"
                 class="mt-3 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/80 dark:bg-amber-950/30 px-3 py-3 text-xs text-amber-700 dark:text-amber-300">
-                환불 상세 정보는 아직 연동되지 않았습니다. 서버에 환불 메타데이터가 없어 비율과 날짜를 표시할 수 없습니다.
+                상세 계산 정보는 아직 표시되지 않을 수 있습니다.
               </div>
             </div>
 
             <div class="flex flex-col gap-2 shrink-0">
               <button @click="loadOrderDetail(order.id)"
                 class="px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-lg text-xs text-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                상세 조회
+                {{ selectedOrderId === order.id && selectedOrder?.id === order.id && !selectedOrderLoading ? '상세 닫기' : '상세 조회' }}
               </button>
               <button v-if="order.status === 'PAID'" @click="refund(order.id)"
                 :disabled="orderActionLoadingId === order.id"
@@ -443,71 +452,62 @@ function hasRefundInfoError(orderId) { return Boolean(orderId && refundInfoError
                 {{ orderActionLoadingId === order.id ? '환불 처리 중...' : '환불' }}
               </button>
             </div>
-          </div>
-        </div>
+            
+            <div v-if="selectedOrderId === order.id" class="basis-full rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#181818] p-5">
+              <div v-if="selectedOrderLoading" class="text-sm text-gray-400 dark:text-gray-500">
+                주문 상세를 불러오는 중입니다.
+              </div>
 
-        <div v-if="selectedOrder || selectedOrderLoading"
-          class="mt-4 bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-800 rounded-2xl p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="font-bold">선택한 주문 상세</h3>
-            <button @click="selectedOrder = null"
-              class="text-sm text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
-              닫기
-            </button>
-          </div>
-
-          <div v-if="selectedOrderLoading" class="text-sm text-gray-400 dark:text-gray-500">
-            주문 상세를 불러오는 중입니다.
-          </div>
-
-          <div v-else-if="selectedOrder" class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-            <div>
-              <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">주문 번호</p>
-              <p class="font-medium break-all">{{ selectedOrder.id }}</p>
-            </div>
-            <div>
-              <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">주문 상태</p>
-              <span :class="orderStatus(selectedOrder.status).cls" class="inline-block px-2 py-1 border rounded text-xs">
-                {{ orderStatus(selectedOrder.status).label }}
-              </span>
-            </div>
-            <div>
-              <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">일정 ID</p>
-              <p class="font-medium break-all">{{ selectedOrder.productScheduleId }}</p>
-            </div>
-            <div>
-              <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">구매자 ID</p>
-              <p class="font-medium break-all">{{ selectedOrder.buyerId }}</p>
-            </div>
-            <div>
-              <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">예약 인원</p>
-              <p class="font-medium">{{ selectedOrder.quantity }}명</p>
-            </div>
-            <div>
-              <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">총 주문 금액</p>
-              <p class="font-medium">₩{{ formatPrice(selectedOrder.totalAmount) }}</p>
-            </div>
-            <template v-if="selectedOrder.status === 'REFUNDED' && refundInfoOf(selectedOrder.id)">
-              <div>
-                <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">클래스 시작 날짜</p>
-                <p class="font-medium">{{ formatDateOnly(refundInfoOf(selectedOrder.id).classStartDate) }}</p>
+              <div v-else-if="selectedOrder" class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">주문 번호</p>
+                  <p class="font-medium break-all">{{ selectedOrder.id }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">주문 상태</p>
+                  <span :class="orderStatus(selectedOrder.status).cls" class="inline-block px-2 py-1 border rounded text-xs">
+                    {{ orderStatus(selectedOrder.status).label }}
+                  </span>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">일정 ID</p>
+                  <p class="font-medium break-all">{{ selectedOrder.productScheduleId }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">구매자 ID</p>
+                  <p class="font-medium break-all">{{ selectedOrder.buyerId }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">예약 인원</p>
+                  <p class="font-medium">{{ selectedOrder.quantity }}명</p>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">총 주문 금액</p>
+                  <p class="font-medium">₩{{ formatPrice(selectedOrder.totalAmount) }}</p>
+                </div>
+                <template v-if="selectedOrder.status === 'REFUNDED' && refundInfoOf(selectedOrder.id)">
+                  <div>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">클래스 시작 날짜</p>
+                    <p class="font-medium">{{ formatDateOnly(refundInfoOf(selectedOrder.id).classStartDate) }}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">환불 날짜</p>
+                    <p class="font-medium">{{ formatDate(refundInfoOf(selectedOrder.id).refundProcessedAt) }}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">환불 비율</p>
+                    <p class="font-medium text-blue-600 dark:text-blue-400">{{ formatRefundRate(refundInfoOf(selectedOrder.id).refundRate) }}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">총 환불 금액</p>
+                    <p class="font-medium">₩{{ formatPrice(refundInfoOf(selectedOrder.id).totalRefundAmount) }}</p>
+                  </div>
+                </template>
+                <div v-else-if="selectedOrder.status === 'REFUNDED' && hasRefundInfoError(selectedOrder.id)"
+                  class="sm:col-span-2 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/80 dark:bg-amber-950/30 px-4 py-3 text-xs text-amber-700 dark:text-amber-300">
+                  상세 계산 정보는 아직 표시되지 않을 수 있습니다.
+                </div>
               </div>
-              <div>
-                <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">환불 날짜</p>
-                <p class="font-medium">{{ formatDate(refundInfoOf(selectedOrder.id).refundProcessedAt) }}</p>
-              </div>
-              <div>
-                <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">환불 비율</p>
-                <p class="font-medium text-blue-600 dark:text-blue-400">{{ formatRefundRate(refundInfoOf(selectedOrder.id).refundRate) }}</p>
-              </div>
-              <div>
-                <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">총 환불 금액</p>
-                <p class="font-medium">₩{{ formatPrice(refundInfoOf(selectedOrder.id).totalRefundAmount) }}</p>
-              </div>
-            </template>
-            <div v-else-if="selectedOrder.status === 'REFUNDED' && hasRefundInfoError(selectedOrder.id)"
-              class="sm:col-span-2 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/80 dark:bg-amber-950/30 px-4 py-3 text-xs text-amber-700 dark:text-amber-300">
-              환불 상세 정보는 아직 연동되지 않았습니다. 서버에 환불 메타데이터가 없어 비율과 날짜를 표시할 수 없습니다.
             </div>
           </div>
         </div>
@@ -556,7 +556,7 @@ function hasRefundInfoError(orderId) { return Boolean(orderId && refundInfoError
               </div>
               <div v-else-if="item.type === 'REFUND' && hasRefundInfoError(item.paymentId)"
                 class="mt-2 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/80 dark:bg-amber-950/30 px-3 py-3 text-xs text-amber-700 dark:text-amber-300">
-                환불 상세 정보는 아직 연동되지 않았습니다. 서버에 환불 메타데이터가 없어 비율과 날짜를 표시할 수 없습니다.
+                상세 계산 정보는 아직 표시되지 않을 수 있습니다.
               </div>
             </div>
             <span :class="{
