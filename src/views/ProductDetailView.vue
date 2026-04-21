@@ -18,6 +18,8 @@ const reviews = ref([])
 const likedMap = ref({}) // scheduleId → likeId
 const mapEl = ref(null)
 const mapError = ref('')
+const pageLoading = ref(true)
+const pageError = ref('')
 
 const lightboxImg = ref('')
 const showLightbox = ref(false)
@@ -95,12 +97,20 @@ async function renderMap() {
 onMounted(async () => {
   if (auth.isLoggedIn && !auth.user) await auth.fetchUser()
 
-  const [productRes, scheduleRes] = await Promise.all([
-    productsApi.detail(route.params.productId),
-    productsApi.schedules(route.params.productId),
-  ])
-  product.value = productRes.data?.data ?? productRes.data
-  schedules.value = scheduleRes.data?.data ?? scheduleRes.data ?? []
+  try {
+    const [productRes, scheduleRes] = await Promise.all([
+      productsApi.detail(route.params.productId),
+      productsApi.schedules(route.params.productId),
+    ])
+    product.value = productRes.data?.data ?? productRes.data
+    schedules.value = scheduleRes.data?.data ?? scheduleRes.data ?? []
+  } catch (e) {
+    pageError.value = e.response?.data?.message || '상품 정보를 불러오는 데 실패했습니다.'
+    pageLoading.value = false
+    return
+  }
+
+  pageLoading.value = false
 
   await nextTick()
   await renderMap()
@@ -263,7 +273,15 @@ function formatDate(dt) { return dt ? dt.substring(0, 10) : '' }
         <ThemeToggle />
       </div>
 
-      <template v-if="product">
+      <div v-if="pageLoading" class="text-center py-20 text-gray-400 dark:text-gray-500">
+        불러오는 중...
+      </div>
+
+      <div v-else-if="pageError" class="p-6 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm">
+        {{ pageError }}
+      </div>
+
+      <template v-else-if="product">
         <div class="bg-white dark:bg-[#1e1e1e] rounded-2xl p-8 border border-gray-200 dark:border-gray-800 mb-10 shadow-lg">
           <p class="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-2">판매자: {{ product.sellerName }}</p>
           <h2 class="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-4">{{ product.title }}</h2>

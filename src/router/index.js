@@ -89,6 +89,12 @@ const routes = [
     name: 'DepositFail',
     component: () => import('@/views/deposit/FailView.vue'),
   },
+  {
+    path: '/admin',
+    name: 'AdminDashboard',
+    component: () => import('@/views/admin/AdminDashboardView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
 ]
 
 const router = createRouter({
@@ -101,6 +107,10 @@ router.beforeEach((to) => {
 
   if (to.meta.requiresAuth && !auth.isLoggedIn) {
     return { name: 'Login', query: { redirect: to.fullPath } }
+  }
+  if (to.meta.requiresAdmin && !auth.isAdmin) {
+    alert('관리자 권한이 필요합니다.')
+    return { name: 'ProductList' }
   }
   if (to.meta.guestOnly && auth.isLoggedIn) {
     return { name: 'ProductList' }
