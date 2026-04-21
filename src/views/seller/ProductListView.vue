@@ -75,13 +75,19 @@ function formatPrice(p) { return Number(p).toLocaleString('ko-KR') }
 
       <div class="flex items-center justify-between mb-6">
         <h1 class="text-xl font-bold">내 상품 관리</h1>
-        <RouterLink to="/seller/products/new"
-          class="flex items-center gap-2 px-4 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-black font-bold rounded-lg text-sm hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
-          상품 등록
-        </RouterLink>
+        <div class="flex gap-2">
+          <RouterLink to="/seller/settlements"
+            class="px-4 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 font-medium rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+            정산 확인
+          </RouterLink>
+          <RouterLink to="/seller/products/new"
+            class="flex items-center gap-2 px-4 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-black font-bold rounded-lg text-sm hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            상품 등록
+          </RouterLink>
+        </div>
       </div>
 
       <div v-if="loading" class="text-center text-gray-400 dark:text-gray-500 py-20">

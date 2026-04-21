@@ -381,6 +381,19 @@ function hasRefundInfoError(orderId) { return Boolean(orderId && refundInfoError
             </svg>
           </RouterLink>
         </div>
+
+        <div v-if="auth.isSeller" class="mt-4">
+          <RouterLink to="/seller/settlements"
+            class="flex items-center justify-between w-full bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-800 rounded-2xl p-5 hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors">
+            <div>
+              <p class="font-bold text-gray-800 dark:text-gray-100">정산 확인</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">월별 정산 금액과 계산 상세를 확인할 수 있습니다</p>
+            </div>
+            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </RouterLink>
+        </div>
       </div>
 
       <!-- ============ 주문 내역 탭 ============ -->

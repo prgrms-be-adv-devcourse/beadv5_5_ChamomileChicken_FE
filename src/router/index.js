@@ -58,6 +58,18 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/seller/settlements',
+    name: 'SellerSettlementList',
+    component: () => import('@/views/seller/SettlementListView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/seller/settlements/:settlementId',
+    name: 'SellerSettlementDetail',
+    component: () => import('@/views/seller/SettlementDetailView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/payment/checkout',
     name: 'PaymentCheckout',
     component: () => import('@/views/payment/CheckoutView.vue'),
