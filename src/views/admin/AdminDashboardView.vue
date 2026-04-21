@@ -11,6 +11,29 @@ const orders = ref([])
 const settlements = ref([])
 const loading = ref(false)
 
+// UUID → 유저 이름 캐시
+const userNameCache = ref({})
+
+async function resolveNames(ids) {
+  const targets = [...new Set(ids.filter(Boolean))].filter(id => !userNameCache.value[id])
+  await Promise.allSettled(
+    targets.map(async id => {
+      try {
+        const res = await adminApi.getUserDetail(id)
+        const name = res.data?.data?.name
+        if (name) userNameCache.value[id] = name
+      } catch { /* 조회 실패 시 ID만 표시 */ }
+    })
+  )
+}
+
+function displayUser(id) {
+  if (!id) return '-'
+  const name = userNameCache.value[id]
+  const shortId = String(id).substring(0, 8)
+  return name ? `${name} (${shortId})` : shortId
+}
+
 async function fetchData() {
   loading.value = true
   try {
@@ -20,12 +43,15 @@ async function fetchData() {
     } else if (activeTab.value === 'products') {
       const res = await adminApi.getProducts()
       products.value = res.data?.data?.content ?? []
+      await resolveNames(products.value.map(p => p.sellerId))
     } else if (activeTab.value === 'orders') {
       const res = await adminApi.getOrders()
       orders.value = res.data?.data?.content ?? []
+      await resolveNames(orders.value.map(o => o.userId))
     } else if (activeTab.value === 'settlements') {
       const res = await adminApi.getSettlements()
       settlements.value = res.data?.data?.content ?? []
+      await resolveNames(settlements.value.map(s => s.sellerId))
     }
   } catch (e) {
     console.error(e)
@@ -163,7 +189,7 @@ async function runEsMigrate() {
             <tr>
               <th class="px-6 py-4">ID</th>
               <th class="px-6 py-4">상품명</th>
-              <th class="px-6 py-4">판매자 ID</th>
+              <th class="px-6 py-4">판매자</th>
               <th class="px-6 py-4">가격</th>
               <th class="px-6 py-4">상태</th>
               <th class="px-6 py-4 text-right">관리</th>
@@ -173,7 +199,7 @@ async function runEsMigrate() {
             <tr v-for="product in products" :key="product.id" class="hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors">
               <td class="px-6 py-4 text-sm font-mono">{{ product.id?.substring(0, 8) }}</td>
               <td class="px-6 py-4 font-medium">{{ product.title }}</td>
-              <td class="px-6 py-4 text-sm font-mono text-gray-500">{{ product.sellerId?.toString().substring(0, 8) }}</td>
+              <td class="px-6 py-4 text-sm text-gray-500">{{ displayUser(product.sellerId) }}</td>
               <td class="px-6 py-4">₩{{ product.price?.toLocaleString() }}</td>
               <td class="px-6 py-4 text-xs font-bold" :class="product.status === 'ENABLE' ? 'text-green-500' : 'text-red-500'">
                 {{ product.status }}
@@ -197,7 +223,7 @@ async function runEsMigrate() {
             <tr>
               <th class="px-6 py-4">ID</th>
               <th class="px-6 py-4">상품일정 ID</th>
-              <th class="px-6 py-4">구매자 ID</th>
+              <th class="px-6 py-4">구매자</th>
               <th class="px-6 py-4">수량</th>
               <th class="px-6 py-4">금액</th>
               <th class="px-6 py-4">상태</th>
@@ -208,7 +234,7 @@ async function runEsMigrate() {
             <tr v-for="order in orders" :key="order.id" class="hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors">
               <td class="px-6 py-4 text-sm font-mono">{{ order.id?.toString().substring(0, 8) }}</td>
               <td class="px-6 py-4 text-sm font-mono text-gray-500">{{ order.productScheduleId?.toString().substring(0, 8) }}</td>
-              <td class="px-6 py-4 text-sm font-mono text-gray-500">{{ order.userId?.toString().substring(0, 8) }}</td>
+              <td class="px-6 py-4 text-sm text-gray-500">{{ displayUser(order.userId) }}</td>
               <td class="px-6 py-4">{{ order.quantity }}</td>
               <td class="px-6 py-4 font-bold">₩{{ order.price?.toLocaleString() }}</td>
               <td class="px-6 py-4 text-xs font-bold uppercase">{{ order.status }}</td>
@@ -222,7 +248,7 @@ async function runEsMigrate() {
           <thead class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-xs uppercase font-bold text-gray-500">
             <tr>
               <th class="px-6 py-4">ID</th>
-              <th class="px-6 py-4">셀러 ID</th>
+              <th class="px-6 py-4">셀러</th>
               <th class="px-6 py-4">정산액</th>
               <th class="px-6 py-4">상태</th>
               <th class="px-6 py-4">이체일</th>
@@ -231,7 +257,7 @@ async function runEsMigrate() {
           <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
             <tr v-for="s in settlements" :key="s.id" class="hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors">
               <td class="px-6 py-4 text-sm font-mono">{{ s.id?.toString().substring(0, 8) }}</td>
-              <td class="px-6 py-4 text-sm font-mono text-gray-500">{{ s.sellerId?.toString().substring(0, 8) }}</td>
+              <td class="px-6 py-4 text-sm text-gray-500">{{ displayUser(s.sellerId) }}</td>
               <td class="px-6 py-4 font-bold">₩{{ s.settlementAmount?.toLocaleString() }}</td>
               <td class="px-6 py-4">
                 <span class="text-xs font-bold px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700">
