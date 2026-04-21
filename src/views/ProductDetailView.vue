@@ -6,6 +6,7 @@ import { productsApi } from '@/api/products'
 import { ordersApi } from '@/api/orders'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { loadKakaoMaps } from '@/utils/loadKakao'
+import { extractApiData, extractApiMessage } from '@/utils/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -38,6 +39,7 @@ const reviewSuccess = ref('')
 
 const depositBalance = computed(() => auth.user?.deposit ?? 0)
 const totalPrice = computed(() => (product.value?.price ?? 0) * quantity.value)
+const reservableCapacity = computed(() => Number(modalSchedule.value?.capacity ?? product.value?.maxCapacity ?? 1))
 const productLatitude = computed(() => Number(product.value?.latitude ?? product.value?.lat ?? 0))
 const productLongitude = computed(() => Number(product.value?.longitude ?? product.value?.lng ?? product.value?.lon ?? 0))
 const productAddress = computed(() => {
@@ -156,31 +158,53 @@ function closeModal() { showModal.value = false }
 async function submitOrder() {
   orderError.value = ''
   const dep = Number(depositInput.value) || 0
-  if (dep > depositBalance.value) {
-    orderError.value = '예치금 잔액을 초과할 수 없습니다.'; return
+  const count = Number(quantity.value) || 0
+
+  if (count < 1) {
+    orderError.value = '예약 수량은 1명 이상이어야 합니다.'
+    return
   }
+  if (dep > depositBalance.value) {
+    orderError.value = '예치금 잔액을 초과할 수 없습니다.'
+    return
+  }
+  if (dep > totalPrice.value) {
+    orderError.value = '사용 예치금은 주문 금액을 초과할 수 없습니다.'
+    return
+  }
+  if (count > reservableCapacity.value) {
+    orderError.value = '선택한 일정의 예약 가능 인원을 초과했습니다.'
+    return
+  }
+
   try {
-    const res = await ordersApi.create(
-      product.value.id,
-      modalSchedule.value.id,
-      quantity.value,
-      dep,
-    )
-    const order = res.data?.data ?? res.data
+    const res = await ordersApi.create({
+      productId: product.value.id,
+      productScheduleId: modalSchedule.value.id,
+      quantity: count,
+      productPrice: product.value.price,
+      depositAmount: dep,
+    })
+    const order = extractApiData(res)
     showModal.value = false
     router.push({
       name: 'PaymentCheckout',
       query: {
         orderId: order.id,
         productId: order.productId,
-        productUserId: order.productUserId,
         buyerId: order.buyerId,
         amount: order.paymentAmount,
         depositAmount: order.depositAmount,
+        totalAmount: order.totalAmount,
+        quantity: order.quantity,
+        productTitle: product.value.title,
+        scheduleDt: modalSchedule.value.scheduleDt,
+        startTime: modalSchedule.value.startTime,
+        endTime: modalSchedule.value.endTime,
       },
     })
   } catch (e) {
-    orderError.value = e.response?.data?.message || '주문 생성에 실패했습니다.'
+    orderError.value = extractApiMessage(e, '주문 생성에 실패했습니다.')
   }
 }
 
@@ -433,7 +457,7 @@ function formatDate(dt) { return dt ? dt.substring(0, 10) : '' }
         <div class="mb-6 space-y-3">
           <div class="flex items-center justify-between">
             <label class="text-sm text-gray-500 dark:text-gray-400">수량</label>
-            <input v-model.number="quantity" type="number" min="1" :max="modalSchedule?.maxCapacity ?? modalSchedule?.capacity"
+            <input v-model.number="quantity" type="number" min="1" :max="reservableCapacity"
               class="w-24 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-[#121212] text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-right" />
           </div>
           <div class="flex items-center justify-between">
