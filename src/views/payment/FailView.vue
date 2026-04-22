@@ -7,16 +7,31 @@ const errorMessage = route.query.message
 </script>
 
 <template>
-  <div class="bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-white min-h-screen flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-[#1e1e1e] rounded-2xl p-10 shadow-2xl border border-gray-200 dark:border-gray-800 text-center max-w-md w-full">
-      <div class="text-5xl mb-4">❌</div>
-      <h2 class="text-2xl font-bold text-red-600 dark:text-red-400 mb-4">결제에 실패했습니다</h2>
-      <p v-if="errorCode" class="text-gray-500 dark:text-gray-400 mb-2">에러 코드: <strong>{{ errorCode }}</strong></p>
-      <p v-if="errorMessage" class="text-gray-500 dark:text-gray-400 mb-8">{{ errorMessage }}</p>
-      <RouterLink to="/products"
-        class="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition">
-        다시 시도하기
-      </RouterLink>
+  <div class="hero min-h-screen bg-base-200">
+    <div class="hero-content w-full max-w-[480px] p-4">
+      <div class="card w-full bg-base-100 shadow-sm border border-base-300/30 rounded-[40px] overflow-hidden animate-in fade-in zoom-in duration-500">
+        <div class="card-body p-8 lg:p-12 items-center text-center">
+          <div class="w-24 h-24 rounded-full bg-error/10 flex items-center justify-center mb-8 animate-shake">
+            <svg class="w-12 h-12 text-error" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+          <h2 class="text-3xl font-black text-base-content tracking-tight mb-4">결제에 실패했습니다</h2>
+          
+          <div v-if="errorCode || errorMessage" class="bg-base-200/50 rounded-2xl p-6 w-full text-left mb-8">
+            <p v-if="errorCode" class="text-xs font-black text-base-content/30 mb-1 uppercase">Error Code</p>
+            <p v-if="errorCode" class="text-sm font-black mb-4">{{ errorCode }}</p>
+            <p class="text-xs font-black text-base-content/30 mb-1 uppercase">Message</p>
+            <p class="text-sm font-bold text-base-content/70 leading-relaxed">{{ errorMessage }}</p>
+          </div>
+
+          <div class="card-actions w-full">
+            <RouterLink to="/products" class="btn btn-primary btn-lg w-full h-16 rounded-2xl font-black shadow-xl shadow-primary/20 border-none">
+              다시 시도하기
+            </RouterLink>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>

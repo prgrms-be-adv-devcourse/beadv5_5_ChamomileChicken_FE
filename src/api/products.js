@@ -46,6 +46,9 @@ export const productsApi = {
   deleteLike: (scheduleId, likeId) =>
     api.delete(`/products/${scheduleId}/likes`, { params: { likeId } }),
 
+  my: (params) =>
+    api.get('/products/my', { params }),
+
   myLikes: () =>
     api.get('/products/me/likes'),
 

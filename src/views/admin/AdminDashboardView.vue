@@ -10,8 +10,8 @@ const products = ref([])
 const orders = ref([])
 const settlements = ref([])
 const loading = ref(false)
+const sidebarOpen = ref(true)
 
-// UUID → { name, email } 캐시
 const userCache = ref({})
 
 async function resolveUsers(ids) {
@@ -113,185 +113,248 @@ async function runEsMigrate() {
     esMigrating.value = false
   }
 }
+
+const menus = [
+  { key: 'users',       label: '사용자 정보',    icon: '👥' },
+  { key: 'products',    label: '상품 관리',       icon: '📦' },
+  { key: 'orders',      label: '전체 주문 조회',  icon: '🧾' },
+  { key: 'settlements', label: '정산 내역 조회',  icon: '💰' },
+]
+
+const tabTitles = {
+  users:       '사용자 정보',
+  products:    '상품 관리',
+  orders:      '전체 주문 조회',
+  settlements: '정산 내역 조회',
+}
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-white p-8">
-    <div class="max-w-7xl mx-auto">
-      <header class="flex justify-between items-center mb-8 pb-4 border-b border-gray-200 dark:border-gray-800">
-        <h1 class="text-3xl font-bold">관리자 페이지</h1>
-        <div class="flex items-center gap-4">
-          <button
-            @click="runEsMigrate"
-            :disabled="esMigrating"
-            class="text-sm px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold transition-colors"
-          >
-            {{ esMigrating ? 'ES 색인 중...' : 'ES 색인 (DB → ES)' }}
-          </button>
-          <ThemeToggle />
-          <RouterLink to="/products" class="text-sm hover:underline">메인으로</RouterLink>
-        </div>
-      </header>
+  <div class="min-h-screen bg-base-200 flex">
 
-      <!-- Tabs -->
-      <div class="flex gap-4 mb-8">
+    <!-- Sidebar -->
+    <aside
+      class="shrink-0 flex flex-col bg-base-100 border-r border-base-300/40 transition-all duration-300 shadow-sm"
+      :class="sidebarOpen ? 'w-60' : 'w-16'"
+    >
+      <!-- Logo area -->
+      <div class="flex items-center gap-3 px-4 py-5 border-b border-base-300/40 h-16">
+        <RouterLink to="/products" class="shrink-0">
+          <img src="/logo.svg" class="h-8" alt="Jaba 클래스" />
+        </RouterLink>
+        <span v-if="sidebarOpen" class="text-xs font-black text-base-content/30 uppercase tracking-widest whitespace-nowrap">Admin</span>
+      </div>
+
+      <!-- Menu items -->
+      <nav class="flex-1 py-4 flex flex-col gap-1 px-2">
         <button
-          v-for="tab in ['users', 'products', 'orders', 'settlements']"
-          :key="tab"
-          @click="switchTab(tab)"
-          class="px-6 py-2 rounded-xl font-bold transition-colors capitalize"
-          :class="activeTab === tab
-            ? 'bg-gray-900 dark:bg-white text-white dark:text-black'
-            : 'bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-800 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'"
+          v-for="menu in menus"
+          :key="menu.keㄱy"
+          @click="switchTab(menu.key)"
+          class="flex items-center gap-3 px-3 py-3 rounded-2xl font-black text-sm transition-all duration-200 w-full text-left"
+          :class="activeTab === menu.key
+            ? 'bg-primary text-white shadow-lg shadow-primary/20'
+            : 'text-base-content/50 hover:bg-base-200 hover:text-base-content'"
         >
-          {{ tab }}
+          <span class="text-lg shrink-0">{{ menu.icon }}</span>
+          <span v-if="sidebarOpen" class="whitespace-nowrap">{{ menu.label }}</span>
+        </button>
+      </nav>
+
+      <!-- Bottom actions -->
+      <div class="px-2 pb-4 flex flex-col gap-2 border-t border-base-300/40 pt-4">
+        <button
+          @click="runEsMigrate"
+          :disabled="esMigrating"
+          class="flex items-center gap-3 px-3 py-3 rounded-2xl font-black text-sm transition-all w-full text-left text-warning hover:bg-warning/10"
+          :title="!sidebarOpen ? 'ES 색인' : ''"
+        >
+          <span class="text-lg shrink-0">⚡</span>
+          <span v-if="sidebarOpen" class="whitespace-nowrap">
+            {{ esMigrating ? 'ES 색인 중...' : 'ES 색인' }}
+          </span>
         </button>
       </div>
+    </aside>
 
-      <div v-if="loading" class="text-center py-20">
-        <p class="text-gray-500">데이터를 불러오는 중...</p>
-      </div>
+    <!-- Main content -->
+    <div class="flex-1 flex flex-col min-w-0">
 
-      <div v-else class="bg-white dark:bg-[#1e1e1e] rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
-        <!-- Users Table -->
-        <table v-if="activeTab === 'users'" class="w-full text-left">
-          <thead class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-xs uppercase font-bold text-gray-500">
-            <tr>
-              <th class="px-6 py-4">ID</th>
-              <th class="px-6 py-4">이름</th>
-              <th class="px-6 py-4">이메일</th>
-              <th class="px-6 py-4">역할</th>
-              <th class="px-6 py-4">가입일</th>
-              <th class="px-6 py-4 text-right">관리</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-            <tr v-for="user in users" :key="user.id" class="hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors">
-              <td class="px-6 py-4 text-sm font-mono">{{ user.id?.substring(0, 8) }}</td>
-              <td class="px-6 py-4">{{ user.name }}</td>
-              <td class="px-6 py-4 text-gray-500">{{ user.email }}</td>
-              <td class="px-6 py-4">
-                <span :class="user.role === 'ADMIN' ? 'text-red-500' : user.role === 'SELLER' ? 'text-blue-500' : 'text-gray-500'" class="text-xs font-bold">
-                  {{ user.role }}
-                </span>
-              </td>
-              <td class="px-6 py-4 text-sm text-gray-500">{{ formatDate(user.createdAt) }}</td>
-              <td class="px-6 py-4 text-right">
-                <button
-                  v-if="user.role === 'USER'"
-                  @click="approveSeller(user.id)"
-                  class="text-xs bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg"
-                >
-                  셀러 승인
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Top bar -->
+      <header class="h-16 bg-base-100/80 backdrop-blur-md border-b border-base-300/40 flex items-center px-6 gap-4 sticky top-0 z-20">
+        <button @click="sidebarOpen = !sidebarOpen" class="btn btn-ghost btn-sm btn-circle">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <h1 class="text-lg font-black text-base-content flex-1">{{ tabTitles[activeTab] }}</h1>
+        <ThemeToggle />
+        <RouterLink to="/products" class="btn btn-ghost btn-sm rounded-xl font-black text-base-content/40">메인으로</RouterLink>
+      </header>
 
-        <!-- Products Table -->
-        <table v-if="activeTab === 'products'" class="w-full text-left">
-          <thead class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-xs uppercase font-bold text-gray-500">
-            <tr>
-              <th class="px-6 py-4">ID</th>
-              <th class="px-6 py-4">상품명</th>
-              <th class="px-6 py-4">판매자</th>
-              <th class="px-6 py-4">가격</th>
-              <th class="px-6 py-4">상태</th>
-              <th class="px-6 py-4 text-right">관리</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-            <tr v-for="product in products" :key="product.id" class="hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors">
-              <td class="px-6 py-4 text-sm font-mono">{{ product.id?.substring(0, 8) }}</td>
-              <td class="px-6 py-4 font-medium">{{ product.title }}</td>
-              <td class="px-6 py-4 text-sm">
-                <div class="text-gray-700 dark:text-gray-300">{{ displayUserName(product.sellerId) }}</div>
-                <div v-if="displayUserEmail(product.sellerId)" class="text-xs text-gray-400">{{ displayUserEmail(product.sellerId) }}</div>
-              </td>
-              <td class="px-6 py-4">₩{{ product.price?.toLocaleString() }}</td>
-              <td class="px-6 py-4 text-xs font-bold" :class="product.status === 'ENABLE' ? 'text-green-500' : 'text-red-500'">
-                {{ product.status }}
-              </td>
-              <td class="px-6 py-4 text-right">
-                <button
-                  v-if="product.status === 'ENABLE'"
-                  @click="forceDown(product.id)"
-                  class="text-xs bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg"
-                >
-                  상품 강제 삭제
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Content area -->
+      <main class="flex-1 p-6 overflow-auto">
 
-        <!-- Orders Table -->
-        <table v-if="activeTab === 'orders'" class="w-full text-left">
-          <thead class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-xs uppercase font-bold text-gray-500">
-            <tr>
-              <th class="px-6 py-4">ID</th>
-              <th class="px-6 py-4">상품일정 ID</th>
-              <th class="px-6 py-4">구매자</th>
-              <th class="px-6 py-4">판매자</th>
-              <th class="px-6 py-4">수량</th>
-              <th class="px-6 py-4">금액</th>
-              <th class="px-6 py-4">상태</th>
-              <th class="px-6 py-4">주문일</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-            <tr v-for="order in orders" :key="order.id" class="hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors">
-              <td class="px-6 py-4 text-sm font-mono">{{ order.id?.toString().substring(0, 8) }}</td>
-              <td class="px-6 py-4 text-sm font-mono text-gray-500">{{ order.productScheduleId?.toString().substring(0, 8) }}</td>
-              <td class="px-6 py-4 text-sm">
-                <div class="text-gray-700 dark:text-gray-300">{{ displayUserName(order.userId) }}</div>
-                <div v-if="displayUserEmail(order.userId)" class="text-xs text-gray-400">{{ displayUserEmail(order.userId) }}</div>
-              </td>
-              <td class="px-6 py-4 text-sm">
-                <template v-if="order.sellerId">
-                  <div class="text-gray-700 dark:text-gray-300">{{ displayUserName(order.sellerId) }}</div>
-                  <div v-if="displayUserEmail(order.sellerId)" class="text-xs text-gray-400">{{ displayUserEmail(order.sellerId) }}</div>
-                </template>
-                <span v-else class="text-gray-400">-</span>
-              </td>
-              <td class="px-6 py-4">{{ order.quantity }}</td>
-              <td class="px-6 py-4 font-bold">₩{{ order.price?.toLocaleString() }}</td>
-              <td class="px-6 py-4 text-xs font-bold uppercase">{{ order.status }}</td>
-              <td class="px-6 py-4 text-sm text-gray-500">{{ formatDate(order.createdAt) }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <!-- Loading -->
+        <div v-if="loading" class="flex justify-center py-32">
+          <span class="loading loading-spinner loading-lg text-primary"></span>
+        </div>
 
-        <!-- Settlements Table -->
-        <table v-if="activeTab === 'settlements'" class="w-full text-left">
-          <thead class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-xs uppercase font-bold text-gray-500">
-            <tr>
-              <th class="px-6 py-4">ID</th>
-              <th class="px-6 py-4">판매자 정보</th>
-              <th class="px-6 py-4">정산액</th>
-              <th class="px-6 py-4">상태</th>
-              <th class="px-6 py-4">이체일</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-            <tr v-for="s in settlements" :key="s.id" class="hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors">
-              <td class="px-6 py-4 text-sm font-mono">{{ s.id?.toString().substring(0, 8) }}</td>
-              <td class="px-6 py-4 text-sm">
-                <div class="text-gray-700 dark:text-gray-300">{{ displayUserName(s.sellerId) }}</div>
-                <div v-if="displayUserEmail(s.sellerId)" class="text-xs text-gray-400">{{ displayUserEmail(s.sellerId) }}</div>
-              </td>
-              <td class="px-6 py-4 font-bold">₩{{ s.settlementAmount?.toLocaleString() }}</td>
-              <td class="px-6 py-4">
-                <span class="text-xs font-bold px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700">
-                  {{ s.status }}
-                </span>
-              </td>
-              <td class="px-6 py-4 text-sm text-gray-500">{{ formatDate(s.transferredAt) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+        <template v-else>
+
+          <!-- Users -->
+          <div v-if="activeTab === 'users'" class="card bg-base-100 rounded-[28px] shadow-sm border border-base-300/20 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div class="overflow-x-auto">
+              <table class="table w-full">
+                <thead>
+                  <tr class="border-base-300/30">
+                    <th class="font-black text-xs text-base-content/40 uppercase tracking-widest">ID</th>
+                    <th class="font-black text-xs text-base-content/40 uppercase tracking-widest">이름</th>
+                    <th class="font-black text-xs text-base-content/40 uppercase tracking-widest">이메일</th>
+                    <th class="font-black text-xs text-base-content/40 uppercase tracking-widest">역할</th>
+                    <th class="font-black text-xs text-base-content/40 uppercase tracking-widest">가입일</th>
+                    <th class="text-right font-black text-xs text-base-content/40 uppercase tracking-widest">관리</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="user in users" :key="user.id" class="border-base-300/20 hover:bg-base-200/40 transition-colors">
+                    <td class="font-mono text-xs text-base-content/40">{{ user.id?.substring(0, 8) }}</td>
+                    <td class="font-black">{{ user.name }}</td>
+                    <td class="text-base-content/60 text-sm">{{ user.email }}</td>
+                    <td class="text-sm font-black">
+                      {{ user.role === 'ADMIN' ? '관리자' : user.role === 'SELLER' ? '판매자' : '수강생' }}
+                    </td>
+                    <td class="text-sm text-base-content/40">{{ formatDate(user.createdAt) }}</td>
+                    <td class="text-right">
+                      <button
+                        v-if="user.role === 'USER'"
+                        @click="approveSeller(user.id)"
+                        class="btn btn-primary btn-xs rounded-xl font-black shadow-sm shadow-primary/20"
+                      >
+                        판매자 승인
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Products -->
+          <div v-else-if="activeTab === 'products'" class="card bg-base-100 rounded-[28px] shadow-sm border border-base-300/20 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div class="overflow-x-auto">
+              <table class="table w-full">
+                <thead>
+                  <tr class="border-base-300/30">
+                    <th class="font-black text-xs text-base-content/40 uppercase tracking-widest">ID</th>
+                    <th class="font-black text-xs text-base-content/40 uppercase tracking-widest">상품명</th>
+                    <th class="font-black text-xs text-base-content/40 uppercase tracking-widest">판매자</th>
+                    <th class="font-black text-xs text-base-content/40 uppercase tracking-widest">가격</th>
+                    <th class="font-black text-xs text-base-content/40 uppercase tracking-widest">상태</th>
+                    <th class="text-right font-black text-xs text-base-content/40 uppercase tracking-widest">관리</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="product in products" :key="product.id" class="border-base-300/20 hover:bg-base-200/40 transition-colors">
+                    <td class="font-mono text-xs text-base-content/40">{{ product.id?.substring(0, 8) }}</td>
+                    <td class="font-black">{{ product.title }}</td>
+                    <td class="text-sm">
+                      <div class="font-bold">{{ displayUserName(product.sellerId) }}</div>
+                      <div v-if="displayUserEmail(product.sellerId)" class="text-xs text-base-content/30">{{ displayUserEmail(product.sellerId) }}</div>
+                    </td>
+                    <td class="font-black">₩{{ product.price?.toLocaleString() }}</td>
+                    <td>
+                      <span class="text-sm font-black" :class="product.status === 'ENABLE' ? 'text-success' : 'text-error'">
+                        {{ product.status === 'ENABLE' ? '활성' : '비활성' }}
+                      </span>
+                    </td>
+                    <td class="text-right">
+                      <button
+                        v-if="product.status === 'ENABLE'"
+                        @click="forceDown(product.id)"
+                        class="btn btn-error btn-xs rounded-xl font-black"
+                      >
+                        상품 강제 삭제
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Orders -->
+          <div v-else-if="activeTab === 'orders'" class="card bg-base-100 rounded-[28px] shadow-sm border border-base-300/20 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div class="overflow-x-auto">
+              <table class="table w-full">
+                <thead>
+                  <tr class="border-base-300/30">
+                    <th class="font-black text-xs text-base-content/40 uppercase tracking-widest">ID</th>
+                    <th class="font-black text-xs text-base-content/40 uppercase tracking-widest">상품일정</th>
+                    <th class="font-black text-xs text-base-content/40 uppercase tracking-widest">구매자</th>
+                    <th class="font-black text-xs text-base-content/40 uppercase tracking-widest">판매자</th>
+                    <th class="font-black text-xs text-base-content/40 uppercase tracking-widest">수량</th>
+                    <th class="font-black text-xs text-base-content/40 uppercase tracking-widest">금액</th>
+                    <th class="font-black text-xs text-base-content/40 uppercase tracking-widest">상태</th>
+                    <th class="font-black text-xs text-base-content/40 uppercase tracking-widest">주문일</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="order in orders" :key="order.id" class="border-base-300/20 hover:bg-base-200/40 transition-colors">
+                    <td class="font-mono text-xs text-base-content/40">{{ order.id?.toString().substring(0, 8) }}</td>
+                    <td class="font-mono text-xs text-base-content/40">{{ order.productScheduleId?.toString().substring(0, 8) }}</td>
+                    <td class="text-sm">
+                      <div class="font-bold">{{ displayUserName(order.userId) }}</div>
+                      <div v-if="displayUserEmail(order.userId)" class="text-xs text-base-content/30">{{ displayUserEmail(order.userId) }}</div>
+                    </td>
+                    <td class="text-sm">
+                      <template v-if="order.sellerId">
+                        <div class="font-bold">{{ displayUserName(order.sellerId) }}</div>
+                        <div v-if="displayUserEmail(order.sellerId)" class="text-xs text-base-content/30">{{ displayUserEmail(order.sellerId) }}</div>
+                      </template>
+                      <span v-else class="text-base-content/30">-</span>
+                    </td>
+                    <td class="font-bold">{{ order.quantity }}</td>
+                    <td class="font-black">₩{{ order.price?.toLocaleString() }}</td>
+                    <td class="text-sm font-black text-base-content/60">{{ order.status }}</td>
+                    <td class="text-sm text-base-content/40">{{ formatDate(order.createdAt) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Settlements -->
+          <div v-else-if="activeTab === 'settlements'" class="card bg-base-100 rounded-[28px] shadow-sm border border-base-300/20 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div class="overflow-x-auto">
+              <table class="table w-full">
+                <thead>
+                  <tr class="border-base-300/30">
+                    <th class="font-black text-xs text-base-content/40 uppercase tracking-widest">ID</th>
+                    <th class="font-black text-xs text-base-content/40 uppercase tracking-widest">판매자</th>
+                    <th class="font-black text-xs text-base-content/40 uppercase tracking-widest">정산액</th>
+                    <th class="font-black text-xs text-base-content/40 uppercase tracking-widest">상태</th>
+                    <th class="font-black text-xs text-base-content/40 uppercase tracking-widest">이체일</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="s in settlements" :key="s.id" class="border-base-300/20 hover:bg-base-200/40 transition-colors">
+                    <td class="font-mono text-xs text-base-content/40">{{ s.id?.toString().substring(0, 8) }}</td>
+                    <td class="text-sm">
+                      <div class="font-bold">{{ displayUserName(s.sellerId) }}</div>
+                      <div v-if="displayUserEmail(s.sellerId)" class="text-xs text-base-content/30">{{ displayUserEmail(s.sellerId) }}</div>
+                    </td>
+                    <td class="font-black">₩{{ s.settlementAmount?.toLocaleString() }}</td>
+                    <td class="text-sm font-black text-base-content/60">{{ s.status }}</td>
+                    <td class="text-sm text-base-content/40">{{ formatDate(s.transferredAt) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </template>
+      </main>
     </div>
   </div>
 </template>
