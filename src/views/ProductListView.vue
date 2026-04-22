@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { productsApi } from '@/api/products'
 import { authApi } from '@/api/auth'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import { resolveImageUrl } from '@/utils/imageUrl'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -152,7 +153,7 @@ function formatPrice(price) {
             class="bg-white dark:bg-[#1e1e1e] rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 flex flex-col group cursor-pointer">
 
             <div class="relative h-56 bg-gray-200 dark:bg-gray-700 w-full overflow-hidden">
-              <img v-if="product.thumbnailPath" :src="product.thumbnailPath" alt="상품 이미지"
+              <img v-if="product.thumbnailPath" :src="resolveImageUrl(product.thumbnailPath)" alt="상품 이미지"
                 class="w-full h-full object-cover" />
               <div v-else class="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-600">
                 <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">

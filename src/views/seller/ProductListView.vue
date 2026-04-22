@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { productsApi } from '@/api/products'
 import { authApi } from '@/api/auth'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import { resolveImageUrl } from '@/utils/imageUrl'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -109,7 +110,7 @@ function formatPrice(p) { return Number(p).toLocaleString('ko-KR') }
 
           <!-- 썸네일 -->
           <div class="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 shrink-0 flex items-center justify-center">
-            <img v-if="product.thumbnailPath" :src="product.thumbnailPath" alt="상품 이미지" class="w-full h-full object-cover" />
+            <img v-if="product.thumbnailPath" :src="resolveImageUrl(product.thumbnailPath)" alt="상품 이미지" class="w-full h-full object-cover" />
             <svg v-else class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                 d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />

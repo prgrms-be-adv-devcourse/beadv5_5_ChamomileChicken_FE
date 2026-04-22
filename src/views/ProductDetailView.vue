@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { productsApi } from '@/api/products'
@@ -7,6 +7,7 @@ import { ordersApi } from '@/api/orders'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { loadKakaoMaps } from '@/utils/loadKakao'
 import { extractApiData, extractApiMessage } from '@/utils/api'
+import { resolveImageUrl } from '@/utils/imageUrl'
 
 const route = useRoute()
 const router = useRouter()
@@ -21,8 +22,16 @@ const mapError = ref('')
 const pageLoading = ref(true)
 const pageError = ref('')
 
-const lightboxImg = ref('')
 const showLightbox = ref(false)
+const lightboxIndex = ref(0)
+
+const lightboxImg = computed(() => {
+  const paths = product.value?.imagePaths
+  if (!paths?.length || lightboxIndex.value < 0 || lightboxIndex.value >= paths.length) return ''
+  return resolveImageUrl(paths[lightboxIndex.value])
+})
+
+const lightboxImageCount = computed(() => product.value?.imagePaths?.length ?? 0)
 
 // 주문 모달
 const showModal = ref(false)
@@ -136,14 +145,57 @@ async function loadReviews() {
   }
 }
 
-function openLightbox(url) {
-  lightboxImg.value = url
+function openLightbox(index) {
+  lightboxIndex.value = index
   showLightbox.value = true
 }
+
 function closeLightbox(e) {
   if (e && e.target !== e.currentTarget) return
   showLightbox.value = false
 }
+
+function lightboxPrev() {
+  const n = lightboxImageCount.value
+  if (n <= 1) return
+  lightboxIndex.value = (lightboxIndex.value - 1 + n) % n
+}
+
+function lightboxNext() {
+  const n = lightboxImageCount.value
+  if (n <= 1) return
+  lightboxIndex.value = (lightboxIndex.value + 1) % n
+}
+
+function onLightboxKeydown(event) {
+  if (!showLightbox.value) return
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    showLightbox.value = false
+    return
+  }
+  if (event.key === 'ArrowLeft') {
+    event.preventDefault()
+    lightboxPrev()
+    return
+  }
+  if (event.key === 'ArrowRight') {
+    event.preventDefault()
+    lightboxNext()
+  }
+}
+
+watch(showLightbox, (open) => {
+  if (open) {
+    window.addEventListener('keydown', onLightboxKeydown)
+  } else {
+    window.removeEventListener('keydown', onLightboxKeydown)
+  }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', onLightboxKeydown)
+})
 
 function openModal(schedule) {
   if (!auth.isLoggedIn) { router.push('/login'); return }
@@ -312,10 +364,10 @@ function formatDate(dt) { return dt ? dt.substring(0, 10) : '' }
         <div v-if="product.imagePaths?.length" class="mb-10">
           <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">상품 이미지</h3>
           <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <div v-for="url in product.imagePaths" :key="url"
+            <div v-for="(url, imgIndex) in product.imagePaths" :key="url"
               class="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 aspect-square cursor-pointer"
-              @click="openLightbox(url)">
-              <img :src="url" alt="상품 이미지" class="w-full h-full object-cover hover:scale-105 transition-transform duration-200" />
+              @click="openLightbox(imgIndex)">
+              <img :src="resolveImageUrl(url)" alt="상품 이미지" class="w-full h-full object-cover hover:scale-105 transition-transform duration-200" />
             </div>
           </div>
         </div>
@@ -323,12 +375,35 @@ function formatDate(dt) { return dt ? dt.substring(0, 10) : '' }
         <div v-if="showLightbox"
           class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
           @click="closeLightbox">
-          <button @click="showLightbox = false"
+          <button type="button" @click="showLightbox = false"
             class="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors z-10">
             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
+          <button
+            v-if="lightboxImageCount > 1"
+            type="button"
+            class="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+            aria-label="이전 이미지"
+            @click.stop="lightboxPrev">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <button
+            v-if="lightboxImageCount > 1"
+            type="button"
+            class="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+            aria-label="다음 이미지"
+            @click.stop="lightboxNext">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+          <p v-if="lightboxImageCount > 1" class="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/80 text-xs z-10">
+            {{ lightboxIndex + 1 }} / {{ lightboxImageCount }} · ← → 키로 이동 · Esc 닫기
+          </p>
           <img :src="lightboxImg" alt="확대 이미지"
             class="max-w-3xl max-h-[80vh] w-full object-contain rounded-xl shadow-2xl"
             @click.stop />

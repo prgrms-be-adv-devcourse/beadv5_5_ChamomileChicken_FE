@@ -6,6 +6,7 @@ import { productsApi } from '@/api/products'
 import { filesApi } from '@/api/files'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { loadDaumPostcode, loadKakaoMaps } from '@/utils/loadKakao'
+import { resolveImageUrl } from '@/utils/imageUrl'
 
 const route = useRoute()
 const router = useRouter()
@@ -92,7 +93,7 @@ onMounted(async () => {
     if (product.imageIds?.length) {
       product.imageIds.forEach((fileId, index) => {
         uploadedFileIds.value.push(fileId)
-        previews.value.push({ fileId, url: product.imagePaths?.[index] ?? '' })
+        previews.value.push({ fileId, url: resolveImageUrl(product.imagePaths?.[index] ?? '') })
       })
     }
   } catch (error) {

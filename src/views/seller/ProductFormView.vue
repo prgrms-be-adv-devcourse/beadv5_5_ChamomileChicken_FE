@@ -1,5 +1,10 @@
 <script setup>
 import { onMounted, ref } from 'vue'
+
+function createPendingId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
+  return `p-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+}
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { productsApi } from '@/api/products'
@@ -29,6 +34,8 @@ const submitting = ref(false)
 
 const uploadedFileIds = ref([])
 const previews = ref([])
+/** 선택 직후 · 업로드 전 순서 조정용 (첫 번째가 대표 썸네일이 됨) */
+const pendingItems = ref([])
 
 onMounted(async () => {
   if (!auth.user) await auth.fetchUser()
@@ -76,36 +83,85 @@ function readAsDataURL(file) {
 
 async function handleFileSelect(event) {
   const files = Array.from(event.target.files ?? [])
-  const remaining = 10 - uploadedFileIds.value.length
-  const toUpload = files.slice(0, remaining)
+  const remaining = 10 - uploadedFileIds.value.length - pendingItems.value.length
+  const toQueue = files.slice(0, remaining)
 
-  if (toUpload.length === 0) {
+  if (toQueue.length === 0) {
     uploadStatus.value = '\uC774\uBBF8\uC9C0\uB294 \uCD5C\uB300 10\uAC1C\uAE4C\uC9C0 \uB4F1\uB85D\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.'
     event.target.value = ''
     return
   }
 
-  uploading.value = true
-  uploadStatus.value = `\uC774\uBBF8\uC9C0 \uC5C5\uB85C\uB4DC \uC911... (0/${toUpload.length})`
-
-  for (let index = 0; index < toUpload.length; index += 1) {
-    const file = toUpload[index]
-    try {
-      const uploadRes = await filesApi.uploadRequest(file.name)
-      const { fileId, uploadUrl } = uploadRes.data.data
-      await fetch(uploadUrl, { method: 'PUT', body: await file.arrayBuffer() })
-      await filesApi.complete(fileId)
-      uploadedFileIds.value.push(fileId)
-      previews.value.push({ fileId, dataUrl: await readAsDataURL(file) })
-      uploadStatus.value = `\uC774\uBBF8\uC9C0 \uC5C5\uB85C\uB4DC \uC911... (${index + 1}/${toUpload.length})`
-    } catch {
-      uploadStatus.value = `"${file.name}" \uC5C5\uB85C\uB4DC\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.`
-    }
+  for (const file of toQueue) {
+    pendingItems.value.push({
+      id: createPendingId(),
+      file,
+      dataUrl: await readAsDataURL(file),
+    })
   }
 
-  uploading.value = false
-  uploadStatus.value = uploadedFileIds.value.length ? `\uCD1D ${uploadedFileIds.value.length}\uAC1C \uC774\uBBF8\uC9C0\uAC00 \uC5C5\uB85C\uB4DC\uB418\uC5C8\uC2B5\uB2C8\uB2E4.` : ''
+  uploadStatus.value = pendingItems.value.length
+    ? `\uC120\uD0DD ${pendingItems.value.length}\uAC1C · \uC21C\uC11C\uB97C \uB9C8\uC6B4 \uD6C4 \uC544\uB798 \u201C\uC774 \uC21C\uC11C\uB85C \uC5C5\uB85C\uB4DC\u201D\uB97C \uB20C\uB7EC\uC8FC\uC138\uC694. (\uCCAB \uBC88\uC9F8\uAC00 \uB300\uD45c \uC378\uB124\uC77C)`
+    : ''
   event.target.value = ''
+}
+
+function removePending(id) {
+  pendingItems.value = pendingItems.value.filter((item) => item.id !== id)
+  uploadStatus.value = pendingItems.value.length
+    ? `\uC120\uD0DD ${pendingItems.value.length}\uAC1C · \uC21C\uC11C\uB97C \uB9C8\uC6B4 \uD6C4 \uC5C5\uB85C\uB4DC\uD558\uC138\uC694.`
+    : uploadedFileIds.value.length
+      ? `\uCD1D ${uploadedFileIds.value.length}\uAC1C \uC774\uBBF8\uC9C0\uAC00 \uC5C5\uB85C\uB4DC\uB418\uC5C8\uC2B5\uB2C8\uB2E4.`
+      : ''
+}
+
+function onPendingDragStart(index, dragEvent) {
+  dragEvent.dataTransfer.effectAllowed = 'move'
+  dragEvent.dataTransfer.setData('text/plain', String(index))
+}
+
+function onPendingDrop(toIndex, dragEvent) {
+  dragEvent.preventDefault()
+  const from = Number.parseInt(dragEvent.dataTransfer.getData('text/plain'), 10)
+  if (!Number.isFinite(from) || from === toIndex) return
+  const next = [...pendingItems.value]
+  const [row] = next.splice(from, 1)
+  next.splice(toIndex, 0, row)
+  pendingItems.value = next
+}
+
+async function uploadPendingQueue() {
+  if (!pendingItems.value.length || uploading.value) return
+  uploading.value = true
+  const queue = [...pendingItems.value]
+  pendingItems.value = []
+  try {
+    for (let i = 0; i < queue.length; i += 1) {
+      const item = queue[i]
+      uploadStatus.value = `\uC774\uBBF8\uC9C0 \uC5C5\uB85C\uB4DC \uC911... (${i + 1}/${queue.length})`
+      try {
+        const uploadRes = await filesApi.uploadRequest(item.file.name)
+        const { fileId, uploadUrl } = uploadRes.data.data
+        await fetch(uploadUrl, { method: 'PUT', body: await item.file.arrayBuffer() })
+        await filesApi.complete(fileId)
+        uploadedFileIds.value.push(fileId)
+        previews.value.push({ fileId, dataUrl: item.dataUrl })
+      } catch {
+        pendingItems.value.push(item)
+        for (let j = i + 1; j < queue.length; j += 1) {
+          pendingItems.value.push(queue[j])
+        }
+        uploadStatus.value = `"${item.file.name}" \uC5C5\uB85C\uB4DC\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.`
+        uploading.value = false
+        return
+      }
+    }
+    uploadStatus.value = uploadedFileIds.value.length
+      ? `\uCD1D ${uploadedFileIds.value.length}\uAC1C \uC774\uBBF8\uC9C0\uAC00 \uC5C5\uB85C\uB4DC\uB418\uC5C8\uC2B5\uB2C8\uB2E4.`
+      : ''
+  } finally {
+    uploading.value = false
+  }
 }
 
 function removeImage(fileId) {
@@ -149,7 +205,7 @@ async function openAddressSearch() {
 }
 
 async function submitForm() {
-  if (uploading.value || submitting.value) return
+  if (uploading.value || submitting.value || pendingItems.value.length) return
   errorMessage.value = ''
   submitting.value = true
 
@@ -230,6 +286,33 @@ async function submitForm() {
             </div>
             <input ref="fileInput" type="file" accept="image/*" multiple class="hidden" @change="handleFileSelect" />
 
+            <div v-if="pendingItems.length" class="mt-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-3">
+              <p class="text-xs text-amber-900 dark:text-amber-200 mb-2 font-medium">업로드 대기 · 드래그로 순서 변경 (맨 앞이 대표 썸네일)</p>
+              <div class="grid grid-cols-3 gap-2">
+                <div
+                  v-for="(item, index) in pendingItems"
+                  :key="item.id"
+                  draggable="true"
+                  class="relative group cursor-grab active:cursor-grabbing"
+                  @dragstart="onPendingDragStart(index, $event)"
+                  @dragover.prevent
+                  @drop="onPendingDrop(index, $event)">
+                  <img :src="item.dataUrl" class="w-full h-20 object-cover rounded-lg border border-amber-300 dark:border-amber-700" />
+                  <button type="button" class="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" @click="removePending(item.id)">×</button>
+                  <div class="absolute bottom-1 left-1 text-white text-xs px-1.5 py-0.5 rounded font-medium" :class="index === 0 ? 'bg-blue-500/90' : 'bg-black/60'">
+                    {{ index === 0 ? '대표' : index + 1 }}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                :disabled="uploading"
+                class="mt-3 w-full py-2.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-sm font-bold rounded-lg transition-colors"
+                @click="uploadPendingQueue">
+                {{ uploading ? '업로드 중...' : '이 순서로 업로드' }}
+              </button>
+            </div>
+
             <div v-if="previews.length" class="mt-3 grid grid-cols-3 gap-2">
               <div v-for="(preview, index) in previews" :key="preview.fileId" class="relative group">
                 <img :src="preview.dataUrl" class="w-full h-20 object-cover rounded-lg border border-gray-200 dark:border-gray-700" />
@@ -260,7 +343,12 @@ async function submitForm() {
 
           <div class="flex gap-3 pt-2">
             <RouterLink to="/seller/products" class="flex-1 py-3 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 font-medium rounded-lg text-sm text-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">&#52712;&#49548;</RouterLink>
-            <button type="button" :disabled="submitting || uploading" class="flex-1 py-3 bg-gray-900 dark:bg-white text-white dark:text-black font-bold rounded-lg text-sm hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors disabled:opacity-50" @click="submitForm">{{ submitting ? '등록 중...' : '등록하기' }}</button>
+            <button
+              type="button"
+              :disabled="submitting || uploading || pendingItems.length > 0"
+              :title="pendingItems.length ? '대기 중인 이미지를 먼저 순서대로 업로드해 주세요.' : undefined"
+              class="flex-1 py-3 bg-gray-900 dark:bg-white text-white dark:text-black font-bold rounded-lg text-sm hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors disabled:opacity-50"
+              @click="submitForm">{{ submitting ? '등록 중...' : '등록하기' }}</button>
           </div>
         </div>
       </div>
