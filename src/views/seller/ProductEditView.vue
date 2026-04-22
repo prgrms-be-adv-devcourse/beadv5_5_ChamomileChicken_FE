@@ -8,6 +8,8 @@ import ThemeToggle from '@/components/ThemeToggle.vue'
 import { loadDaumPostcode, loadKakaoMaps } from '@/utils/loadKakao'
 import { resolveImageUrl } from '@/utils/imageUrl'
 
+const DT_UPLOADED = 'application/x-jabaclass-uploaded-index'
+
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
@@ -62,6 +64,79 @@ function preventNumberScroll(event) {
   event.target.blur()
 }
 
+function normalizeStringList(val) {
+  if (val == null) return []
+  if (Array.isArray(val)) return val.map((x) => (x == null ? '' : String(x)))
+  if (typeof val === 'string') {
+    return val
+      .split(/[,\n]/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+  }
+  return []
+}
+
+const UUID_IN_PATH = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+/** storagePath가 `userId/fileId/fileName` 형태일 때 fileId 추출 */
+function guessFileIdFromStoragePath(path) {
+  if (!path || typeof path !== 'string') return ''
+  const parts = path.split('/').filter(Boolean)
+  if (parts.length >= 2 && UUID_IN_PATH.test(parts[1])) return parts[1]
+  return ''
+}
+
+/**
+ * 상품 상세 응답에서 이미지 슬롯(fileId + 표시용 경로) 추출.
+ * imagePaths가 비어 있고 thumbnail만 있는 경우 등 백엔드 편차를 흡수한다.
+ */
+function extractProductImageSlots(product) {
+  if (!product || typeof product !== 'object') return []
+
+  const nested =
+    product.images ??
+    product.productImages ??
+    product.imageList ??
+    product.product_images
+  if (Array.isArray(nested) && nested.length) {
+    return nested
+      .map((img) => ({
+        fileId: String(img?.fileId ?? img?.file_id ?? img?.imageId ?? img?.image_id ?? img?.id ?? ''),
+        rawPath: img?.storagePath ?? img?.storage_path ?? img?.path ?? img?.url ?? '',
+      }))
+      .filter((row) => row.fileId)
+  }
+
+  const ids = normalizeStringList(product.imageIds ?? product.image_ids ?? product.fileIds)
+  const paths = normalizeStringList(product.imagePaths ?? product.image_paths)
+  const thumb = product.thumbnailPath ?? product.thumbnail_path ?? ''
+
+  if (!ids.length && paths.length) {
+    return paths
+      .map((rawPath) => {
+        const fileId = guessFileIdFromStoragePath(rawPath)
+        return fileId ? { fileId, rawPath } : null
+      })
+      .filter(Boolean)
+  }
+
+  if (!ids.length) return []
+
+  function pathForFileId(fileId, index) {
+    if (paths[index]) return paths[index]
+    const hit = paths.find((p) => guessFileIdFromStoragePath(p) === fileId)
+    if (hit) return hit
+    if (thumb && guessFileIdFromStoragePath(thumb) === fileId) return thumb
+    return ''
+  }
+
+  return ids.map((fileId, index) => {
+    let rawPath = pathForFileId(fileId, index)
+    if (!rawPath && thumb && index === 0) rawPath = thumb
+    if (!rawPath && thumb && paths.length === 0 && ids.length === 1) rawPath = thumb
+    return { fileId, rawPath }
+  })
+}
 
 onMounted(async () => {
   if (!auth.user) await auth.fetchUser()
@@ -90,12 +165,11 @@ onMounted(async () => {
     latitude.value = product.latitude != null ? String(product.latitude) : ''
     longitude.value = product.longitude != null ? String(product.longitude) : ''
 
-    if (product.imageIds?.length) {
-      product.imageIds.forEach((fileId, index) => {
-        uploadedFileIds.value.push(fileId)
-        previews.value.push({ fileId, url: resolveImageUrl(product.imagePaths?.[index] ?? '') })
-      })
-    }
+    const imageSlots = extractProductImageSlots(product)
+    imageSlots.forEach(({ fileId, rawPath }) => {
+      uploadedFileIds.value.push(fileId)
+      previews.value.push({ fileId, url: resolveImageUrl(rawPath) })
+    })
   } catch (error) {
     errorMessage.value = error?.response?.data?.message || '\uC0C1\uD488 \uC815\uBCF4\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.'
   } finally {
@@ -166,6 +240,25 @@ function removeImage(fileId) {
   uploadedFileIds.value = uploadedFileIds.value.filter((id) => id !== fileId)
   previews.value = previews.value.filter((preview) => preview.fileId !== fileId)
   uploadStatus.value = uploadedFileIds.value.length ? `\uCD1D ${uploadedFileIds.value.length}\uAC1C \uC774\uBBF8\uC9C0\uAC00 \uB4F1\uB85D\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.` : ''
+}
+
+function onUploadedDragStart(index, dragEvent) {
+  dragEvent.dataTransfer.effectAllowed = 'move'
+  dragEvent.dataTransfer.setData(DT_UPLOADED, String(index))
+}
+
+function onUploadedDrop(toIndex, dragEvent) {
+  dragEvent.preventDefault()
+  const from = Number.parseInt(dragEvent.dataTransfer.getData(DT_UPLOADED), 10)
+  if (!Number.isFinite(from) || from === toIndex) return
+  const nextPreviews = [...previews.value]
+  const nextIds = [...uploadedFileIds.value]
+  const [row] = nextPreviews.splice(from, 1)
+  const [id] = nextIds.splice(from, 1)
+  nextPreviews.splice(toIndex, 0, row)
+  nextIds.splice(toIndex, 0, id)
+  previews.value = nextPreviews
+  uploadedFileIds.value = nextIds
 }
 
 async function openAddressSearch() {
@@ -277,7 +370,7 @@ async function submitForm() {
   <div class="bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-white antialiased min-h-screen">
     <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <header class="flex justify-between items-center mb-10 pb-4 border-b border-gray-200 dark:border-gray-800">
-        <RouterLink to="/seller/products" class="text-2xl font-bold tracking-tight">Jaba Trade</RouterLink>
+        <RouterLink to="/seller/products" class="text-2xl font-bold tracking-tight">jabaclass</RouterLink>
         <ThemeToggle />
       </header>
 
@@ -331,12 +424,30 @@ async function submitForm() {
               </div>
               <input ref="fileInput" type="file" accept="image/*" multiple class="hidden" @change="handleFileSelect" />
 
-              <div v-if="previews.length" class="mt-3 grid grid-cols-3 gap-2">
-                <div v-for="(preview, index) in previews" :key="preview.fileId" class="relative group">
-                  <img :src="preview.url" class="w-full h-20 object-cover rounded-lg border border-gray-200 dark:border-gray-700" />
-                  <button type="button" class="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" @click="removeImage(preview.fileId)">×</button>
-                  <div class="absolute bottom-1 left-1 text-white text-xs px-1.5 py-0.5 rounded font-medium" :class="index === 0 ? 'bg-blue-500/90' : 'bg-black/60'">
-                    {{ index === 0 ? '대표' : index + 1 }}
+              <div v-if="previews.length" class="mt-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#181818] p-3">
+                <p class="text-xs text-gray-600 dark:text-gray-400 mb-2 font-medium">드래그로 순서 변경 (맨 앞이 대표 썸네일)</p>
+                <div class="grid grid-cols-3 gap-2">
+                  <div
+                    v-for="(preview, index) in previews"
+                    :key="`${preview.fileId}-${index}`"
+                    draggable="true"
+                    class="relative group cursor-grab active:cursor-grabbing"
+                    @dragstart="onUploadedDragStart(index, $event)"
+                    @dragover.prevent
+                    @drop="onUploadedDrop(index, $event)">
+                    <img
+                      v-if="preview.url"
+                      :src="preview.url"
+                      class="w-full h-20 object-cover rounded-lg border border-gray-200 dark:border-gray-700" />
+                    <div
+                      v-else
+                      class="w-full h-20 flex items-center justify-center rounded-lg border border-dashed border-gray-400 dark:border-gray-600 bg-gray-100 dark:bg-[#2a2a2a] text-[10px] text-gray-500 dark:text-gray-400 px-1 text-center">
+                      경로 없음
+                    </div>
+                    <button type="button" class="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" @click="removeImage(preview.fileId)">×</button>
+                    <div class="absolute bottom-1 left-1 text-white text-xs px-1.5 py-0.5 rounded font-medium" :class="index === 0 ? 'bg-blue-500/90' : 'bg-black/60'">
+                      {{ index === 0 ? '대표' : index + 1 }}
+                    </div>
                   </div>
                 </div>
               </div>

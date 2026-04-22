@@ -1,16 +1,19 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-
-function createPendingId() {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
-  return `p-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
-}
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { productsApi } from '@/api/products'
 import { filesApi } from '@/api/files'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { loadDaumPostcode, loadKakaoMaps } from '@/utils/loadKakao'
+
+const DT_PENDING = 'application/x-jabaclass-pending-index'
+const DT_UPLOADED = 'application/x-jabaclass-uploaded-index'
+
+function createPendingId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
+  return `p-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+}
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -117,17 +120,36 @@ function removePending(id) {
 
 function onPendingDragStart(index, dragEvent) {
   dragEvent.dataTransfer.effectAllowed = 'move'
-  dragEvent.dataTransfer.setData('text/plain', String(index))
+  dragEvent.dataTransfer.setData(DT_PENDING, String(index))
 }
 
 function onPendingDrop(toIndex, dragEvent) {
   dragEvent.preventDefault()
-  const from = Number.parseInt(dragEvent.dataTransfer.getData('text/plain'), 10)
+  const from = Number.parseInt(dragEvent.dataTransfer.getData(DT_PENDING), 10)
   if (!Number.isFinite(from) || from === toIndex) return
   const next = [...pendingItems.value]
   const [row] = next.splice(from, 1)
   next.splice(toIndex, 0, row)
   pendingItems.value = next
+}
+
+function onUploadedDragStart(index, dragEvent) {
+  dragEvent.dataTransfer.effectAllowed = 'move'
+  dragEvent.dataTransfer.setData(DT_UPLOADED, String(index))
+}
+
+function onUploadedDrop(toIndex, dragEvent) {
+  dragEvent.preventDefault()
+  const from = Number.parseInt(dragEvent.dataTransfer.getData(DT_UPLOADED), 10)
+  if (!Number.isFinite(from) || from === toIndex) return
+  const nextPreviews = [...previews.value]
+  const nextIds = [...uploadedFileIds.value]
+  const [row] = nextPreviews.splice(from, 1)
+  const [id] = nextIds.splice(from, 1)
+  nextPreviews.splice(toIndex, 0, row)
+  nextIds.splice(toIndex, 0, id)
+  previews.value = nextPreviews
+  uploadedFileIds.value = nextIds
 }
 
 async function uploadPendingQueue() {
@@ -241,7 +263,7 @@ async function submitForm() {
   <div class="bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-white antialiased min-h-screen">
     <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <header class="flex justify-between items-center mb-10 pb-4 border-b border-gray-200 dark:border-gray-800">
-        <RouterLink to="/seller/products" class="text-2xl font-bold tracking-tight">Jaba Trade</RouterLink>
+        <RouterLink to="/seller/products" class="text-2xl font-bold tracking-tight">jabaclass</RouterLink>
         <ThemeToggle />
       </header>
 
@@ -313,13 +335,23 @@ async function submitForm() {
               </button>
             </div>
 
-            <div v-if="previews.length" class="mt-3 grid grid-cols-3 gap-2">
-              <div v-for="(preview, index) in previews" :key="preview.fileId" class="relative group">
-                <img :src="preview.dataUrl" class="w-full h-20 object-cover rounded-lg border border-gray-200 dark:border-gray-700" />
+            <div v-if="previews.length" class="mt-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#181818] p-3">
+              <p class="text-xs text-gray-600 dark:text-gray-400 mb-2 font-medium">업로드됨 · 드래그로 순서 변경 (맨 앞이 대표 썸네일)</p>
+              <div class="grid grid-cols-3 gap-2">
+                <div
+                  v-for="(preview, index) in previews"
+                  :key="`${preview.fileId}-${index}`"
+                  draggable="true"
+                  class="relative group cursor-grab active:cursor-grabbing"
+                  @dragstart="onUploadedDragStart(index, $event)"
+                  @dragover.prevent
+                  @drop="onUploadedDrop(index, $event)">
+                  <img :src="preview.dataUrl" class="w-full h-20 object-cover rounded-lg border border-gray-200 dark:border-gray-700" />
                 <button type="button" class="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" @click="removeImage(preview.fileId)">×</button>
                 <div class="absolute bottom-1 left-1 text-white text-xs px-1.5 py-0.5 rounded font-medium" :class="index === 0 ? 'bg-blue-500/90' : 'bg-black/60'">
                   {{ index === 0 ? '대표' : index + 1 }}
                 </div>
+              </div>
               </div>
             </div>
 
