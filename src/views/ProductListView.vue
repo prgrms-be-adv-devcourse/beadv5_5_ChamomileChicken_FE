@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { productsApi } from '@/api/products'
@@ -54,6 +54,11 @@ onMounted(async () => {
     await auth.fetchUser()
   }
   await fetchProducts()
+  startBannerAuto()
+})
+
+onUnmounted(() => {
+  clearInterval(bannerTimer)
 })
 
 function handleSearch() {
@@ -84,6 +89,35 @@ async function logout() {
 
 function formatPrice(price) {
   return Number(price).toLocaleString('ko-KR')
+}
+
+const banners = [
+  { src: '/winter-banner.png', alt: '겨울 특별 클래스' },
+  { src: '/ilon-banner.png', alt: '추천 클래스' },
+  { src: '/newjeans.png', alt: 'New Jeans 클래스' },
+]
+const bannerIndex = ref(0)
+let bannerTimer = null
+
+function startBannerAuto() {
+  bannerTimer = setInterval(() => {
+    bannerIndex.value = (bannerIndex.value + 1) % banners.length
+  }, 5000)
+}
+
+function prevBanner() {
+  bannerIndex.value = (bannerIndex.value - 1 + banners.length) % banners.length
+  restartBannerAuto()
+}
+
+function nextBanner() {
+  bannerIndex.value = (bannerIndex.value + 1) % banners.length
+  restartBannerAuto()
+}
+
+function restartBannerAuto() {
+  clearInterval(bannerTimer)
+  startBannerAuto()
 }
 </script>
 
@@ -129,7 +163,7 @@ function formatPrice(price) {
         <h1 class="text-3xl lg:text-4xl font-extrabold tracking-tight text-base-content mb-2">
           {{ auth.isLoggedIn && auth.user?.name ? `${auth.user.name} 님 반가워요! 👋` : '반가워요! 👋' }}
         </h1>
-        <p class="text-base-content/60 text-lg">오늘 어떤 배움을 찾아볼까요?</p>
+        <p class="text-base-content/60 text-lg">두근 두근! 오늘은 어떤 클래스를 찾아볼까요?</p>
       </div>
 
       <!-- Search Bar -->
@@ -149,6 +183,53 @@ function formatPrice(price) {
             검색
           </button>
         </form>
+      </div>
+
+      <!-- Banner Carousel -->
+      <div class="mb-4">
+        <h2 class="text-xl font-black text-base-content">🔥 잡아 클래스 소식</h2>
+      </div>
+      <div class="relative mb-12 rounded-[28px] overflow-hidden shadow-md select-none">
+        <transition name="banner-fade" mode="out-in">
+          <img
+            :key="bannerIndex"
+            :src="banners[bannerIndex].src"
+            :alt="banners[bannerIndex].alt"
+            class="w-full object-cover aspect-[3/2]"
+          />
+        </transition>
+
+        <!-- 좌 화살표 -->
+        <button
+          @click="prevBanner"
+          class="absolute left-3 top-1/2 -translate-y-1/2 btn btn-circle btn-sm bg-base-100/70 hover:bg-base-100 border-none shadow backdrop-blur-sm"
+          aria-label="이전 배너"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+
+        <!-- 우 화살표 -->
+        <button
+          @click="nextBanner"
+          class="absolute right-3 top-1/2 -translate-y-1/2 btn btn-circle btn-sm bg-base-100/70 hover:bg-base-100 border-none shadow backdrop-blur-sm"
+          aria-label="다음 배너"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+
+        <!-- 인디케이터 -->
+        <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
+          <button
+            v-for="(_, i) in banners"
+            :key="i"
+            @click="bannerIndex = i; restartBannerAuto()"
+            :class="['w-2 h-2 rounded-full transition-all', i === bannerIndex ? 'bg-white w-5' : 'bg-white/50']"
+          />
+        </div>
       </div>
 
       <!-- Error -->
@@ -252,3 +333,14 @@ function formatPrice(price) {
     </div>
   </div>
 </template>
+
+<style scoped>
+.banner-fade-enter-active,
+.banner-fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+.banner-fade-enter-from,
+.banner-fade-leave-to {
+  opacity: 0;
+}
+</style>
