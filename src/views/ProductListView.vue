@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { productsApi } from '@/api/products'
@@ -61,6 +61,16 @@ function handleSearch() {
   fetchProducts()
 }
 
+let searchDebounceTimer = null
+function onSearchInput(e) {
+  searchQuery.value = e.target.value
+  clearTimeout(searchDebounceTimer)
+  searchDebounceTimer = setTimeout(() => {
+    currentPage.value = 0
+    fetchProducts()
+  }, 300)
+}
+
 function handlePageChange(page) {
   currentPage.value = page
   fetchProducts()
@@ -120,7 +130,8 @@ function formatPrice(price) {
       <div class="mb-8">
         <form @submit.prevent="handleSearch" class="flex gap-2 max-w-md mx-auto">
           <input
-            v-model="searchQuery"
+            :value="searchQuery"
+            @input="onSearchInput"
             type="text"
             placeholder="상품명, 상품 설명으로 검색"
             class="flex-grow px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1e1e1e] focus:outline-none focus:ring-2 focus:ring-blue-500"
