@@ -23,10 +23,10 @@ api.interceptors.response.use(
     const auth = useAuthStore()
     const originalRequest = error.config
 
-    // 401이고, 토큰이 있고, 아직 재시도 안 한 경우에만 reissue 시도
+    // 401/403이고, 토큰이 있고, 아직 재시도 안 한 경우에만 reissue 시도
     // _skipReissue 플래그가 있으면 건너뜀 (fetchUser 등 실패해도 괜찮은 요청)
     if (
-      error.response?.status === 401 &&
+      [401, 403].includes(error.response?.status) &&
       auth.accessToken &&
       !originalRequest._retry &&
       !isRefreshing &&
