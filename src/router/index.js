@@ -102,6 +102,11 @@ const routes = [
     component: () => import('@/views/deposit/FailView.vue'),
   },
   {
+    path: '/faq',
+    name: 'Faq',
+    component: () => import('@/views/FaqView.vue'),
+  },
+  {
     path: '/admin',
     name: 'AdminDashboard',
     component: () => import('@/views/admin/AdminDashboardView.vue'),

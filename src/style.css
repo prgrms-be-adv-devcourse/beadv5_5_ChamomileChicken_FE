@@ -2,6 +2,109 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: 'Pretendard', sans-serif;
+@layer base {
+  body {
+    @apply font-sans antialiased bg-base-200 text-base-content;
+    font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
+  }
+}
+
+@layer components {
+  .toss-card {
+    @apply bg-base-100 rounded-[24px] shadow-none transition-all duration-200;
+  }
+  
+  .toss-clickable {
+    @apply transition-transform duration-200 active:scale-[0.96] cursor-pointer;
+  }
+
+  .toss-btn {
+    @apply btn normal-case font-bold border-none transition-all duration-200 active:scale-[0.95];
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  15%       { transform: translateX(-6px); }
+  30%       { transform: translateX(6px); }
+  45%       { transform: translateX(-4px); }
+  60%       { transform: translateX(4px); }
+  75%       { transform: translateX(-2px); }
+  90%       { transform: translateX(2px); }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* Date / Time input — cross-theme fix */
+input[type="date"],
+input[type="time"] {
+  color-scheme: light;
+  position: relative;
+}
+
+[data-theme="jaba-dark"] input[type="date"],
+[data-theme="jaba-dark"] input[type="time"] {
+  color-scheme: dark;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  opacity: 0.5;
+  cursor: pointer;
+  filter: none;
+  border-radius: 4px;
+  padding: 2px;
+}
+
+[data-theme="jaba-dark"] input[type="date"]::-webkit-calendar-picker-indicator,
+[data-theme="jaba-dark"] input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.7;
+}
+
+/* VueDatePicker custom theme */
+:root {
+  --dp-font-family: inherit;
+  --dp-border-radius: 12px;
+  --dp-input-border-radius: 12px;
+  --dp-input-padding: 10px 14px;
+  --dp-font-size: 0.875rem;
+  --dp-primary-color: #3182f6;
+  --dp-primary-text-color: #fff;
+  --dp-border-color: transparent;
+  --dp-menu-border-color: transparent;
+  --dp-box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+}
+
+.dp__input {
+  background-color: oklch(var(--b1)) !important;
+  color: oklch(var(--bc)) !important;
+  font-weight: 700 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.dp__input:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px #3182f620 !important;
+}
+
+.dp__input_icon {
+  color: oklch(var(--bc) / 0.4) !important;
+}
+
+/* Custom Scrollbar for modern look */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-base-300 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-base-content/20;
 }
