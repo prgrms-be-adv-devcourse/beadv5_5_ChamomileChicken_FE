@@ -157,7 +157,7 @@ async function register() {
                 <div class="flex gap-2">
                   <input v-model="code" type="text" placeholder="6자리 숫자" maxlength="6"
                     class="input input-lg bg-base-200 border-none focus:bg-white focus:ring-2 focus:ring-primary/20 rounded-2xl font-black text-center tracking-[0.5em] transition-all h-14 flex-1" />
-                  <button @click="verifyCode" class="btn btn-lg bg-base-content text-base-100 rounded-2xl px-8 h-14 border-none font-black transition-all active:scale-95">
+                  <button @click="verifyCode" class="btn bg-base-content text-base-100 rounded-2xl px-6 h-14 border-none font-black transition-all active:scale-95">
                     인증하기
                   </button>
                 </div>

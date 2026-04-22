@@ -219,13 +219,13 @@ function hasRefundInfoError(orderId) { return Boolean(orderId && refundInfoError
             <RouterLink to="/deposit/charge" class="btn btn-primary rounded-2xl px-6 shadow-lg shadow-primary/20">충전</RouterLink>
           </div>
         </div>
-        <div v-if="auth.isSeller" class="card bg-base-content text-base-100 rounded-[32px] p-8 shadow-sm group hover:shadow-xl transition-all">
-          <p class="text-sm font-black opacity-40 mb-2 uppercase tracking-widest text-white">Seller Management</p>
+        <div v-if="auth.isSeller" class="card bg-base-100 text-base-content rounded-[32px] p-8 shadow-sm group hover:shadow-xl transition-all">
+          <p class="text-sm font-black opacity-40 mb-2 uppercase tracking-widest">Seller Management</p>
           <div class="flex items-center justify-between">
-            <h3 class="text-2xl font-black tracking-tight text-white">판매자 메뉴</h3>
+            <h3 class="text-2xl font-black tracking-tight">판매자 메뉴</h3>
             <div class="flex gap-2">
-              <RouterLink to="/seller/products" class="btn btn-sm bg-white/10 hover:bg-white/20 border-none text-white rounded-xl">상품</RouterLink>
-              <RouterLink to="/seller/settlements" class="btn btn-sm bg-white/10 hover:bg-white/20 border-none text-white rounded-xl">정산</RouterLink>
+              <RouterLink to="/seller/products" class="btn btn-sm bg-base-content/10 hover:bg-base-content/20 border-none text-base-content rounded-xl">상품</RouterLink>
+              <RouterLink to="/seller/settlements" class="btn btn-sm bg-base-content/10 hover:bg-base-content/20 border-none text-base-content rounded-xl">정산</RouterLink>
             </div>
           </div>
         </div>

@@ -76,6 +76,14 @@ function canReserveSchedule(schedule) {
   return String(schedule?.status ?? '').trim().toUpperCase() !== 'FULL'
 }
 
+function openKakaoMap() {
+  const name = encodeURIComponent(product.value?.name ?? '위치')
+  window.open(
+    `https://map.kakao.com/link/map/${name},${productLatitude.value},${productLongitude.value}`,
+    '_blank'
+  )
+}
+
 async function renderMap() {
   if (!mapEl.value || !productLatitude.value || !productLongitude.value) return
   try {
@@ -251,7 +259,7 @@ async function logout() {
         <template v-if="auth.isLoggedIn">
           <div class="dropdown dropdown-end">
             <label tabindex="0" class="btn btn-ghost btn-circle avatar online">
-              <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+              <div class="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold text-sm" style="display:flex;align-items:center;justify-content:center;line-height:1">
                 {{ auth.user?.name?.charAt(0) || 'U' }}
               </div>
             </label>
@@ -315,7 +323,7 @@ async function logout() {
                 <div ref="mapEl" class="w-full h-full grayscale-[0.3] group-hover:grayscale-0 transition-all duration-500"></div>
                 <div class="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur p-3 rounded-xl shadow-lg flex items-center justify-between">
                   <span class="text-xs font-black text-base-content/70">지도를 드래그하여 확인하세요</span>
-                  <button class="btn btn-primary btn-xs rounded-lg">크게보기</button>
+                  <button @click="openKakaoMap" class="btn btn-primary btn-xs rounded-lg">크게보기</button>
                 </div>
               </div>
               <p v-if="mapError" class="text-error text-xs mt-3 font-bold">{{ mapError }}</p>
