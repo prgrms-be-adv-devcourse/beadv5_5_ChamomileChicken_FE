@@ -17,8 +17,7 @@ const verifiedToken = ref('')
 const error = ref('')
 const success = ref('')
 
-// 단계별 상태
-const emailChecked = ref(false)      // 중복 확인 통과 여부
+const emailChecked = ref(false)
 const emailCheckLoading = ref(false)
 const showCodeSection = ref(false)
 const showRegisterSection = ref(false)
@@ -29,7 +28,6 @@ const sendBtnText = ref('인증번호 발송')
 function showError(msg) { error.value = msg; success.value = '' }
 function showSuccess(msg) { success.value = msg; error.value = '' }
 
-// 이메일 입력 변경 시 중복 확인 초기화
 function onEmailInput() {
   emailChecked.value = false
   showCodeSection.value = false
@@ -100,94 +98,113 @@ async function register() {
 </script>
 
 <template>
-  <div class="bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-white antialiased min-h-screen flex items-center justify-center p-4">
+  <div class="hero min-h-screen bg-base-200">
+    <ThemeToggle class="fixed top-6 right-6 z-10" />
 
-    <ThemeToggle class="fixed top-4 right-4 bg-white dark:bg-[#1e1e1e] shadow-sm" />
+    <div class="hero-content w-full max-w-[480px] p-4">
+      <div class="card w-full bg-base-100 shadow-sm border border-base-300/30 rounded-[40px] overflow-hidden animate-in fade-in zoom-in duration-500">
+        <div class="card-body p-8 lg:p-12">
+          <div class="text-center mb-10">
+            <RouterLink to="/products">
+              <img src="/logo.svg" class="h-12 lg:h-14 mx-auto mb-6 hover:scale-105 transition-transform" alt="Jaba Class" />
+            </RouterLink>
+            <h1 class="text-2xl font-black text-base-content tracking-tight">시작해볼까요? ✨</h1>
+            <p class="text-base-content/40 mt-2 font-bold">간편하게 가입하고 클래스를 즐겨보세요</p>
+          </div>
 
-    <div class="w-full max-w-sm bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-800 rounded-2xl p-8 shadow-2xl">
-      <div class="text-center mb-8">
-        <h2 class="text-3xl font-bold tracking-tight">Jaba</h2>
-        <p class="text-sm text-gray-500 mt-2">회원가입</p>
-      </div>
+          <!-- Alert Messages -->
+          <div class="space-y-4 mb-8">
+            <div v-if="error" class="alert bg-error/10 border-none text-error py-4 rounded-2xl animate-shake">
+              <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-5 w-5" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <span class="text-sm font-black">{{ error }}</span>
+            </div>
+            <div v-if="success" class="alert bg-success/10 border-none text-success py-4 rounded-2xl animate-in slide-in-from-top-4">
+              <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-5 w-5" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <span class="text-sm font-black">{{ success }}</span>
+            </div>
+          </div>
 
-      <div v-if="error"
-        class="bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg mb-5 text-sm">
-        {{ error }}
-      </div>
-      <div v-if="success"
-        class="bg-green-50 dark:bg-green-900/30 border border-green-300 dark:border-green-800 text-green-700 dark:text-green-400 px-4 py-3 rounded-lg mb-5 text-sm">
-        {{ success }}
-      </div>
+          <div class="space-y-6">
+            <!-- 1단계: 이메일 + 중복 확인 -->
+            <div class="form-control">
+              <label class="label pt-0"><span class="label-text text-xs font-black text-base-content/40 ml-1">이메일</span></label>
+              <div class="flex gap-2">
+                <input v-model="email" @input="onEmailInput" type="email" placeholder="email@example.com" :disabled="emailDisabled"
+                  class="input input-lg bg-base-200 border-none focus:bg-white focus:ring-2 focus:ring-primary/20 rounded-2xl font-bold transition-all h-14 flex-1 disabled:opacity-50" />
+                <button @click="checkEmail" :disabled="emailCheckLoading || emailDisabled"
+                  class="btn btn-lg rounded-2xl px-6 h-14 border-none shadow-sm transition-all active:scale-95"
+                  :class="emailChecked ? 'bg-success/10 text-success hover:bg-success/20' : 'bg-base-content text-base-100'">
+                  <span v-if="emailCheckLoading" class="loading loading-spinner loading-sm"></span>
+                  <span v-else class="font-black">{{ emailChecked ? '확인됨' : '중복확인' }}</span>
+                </button>
+              </div>
+            </div>
 
-      <div class="space-y-4">
+            <!-- 2단계: 인증번호 발송 -->
+            <transition name="fade">
+              <div v-if="emailChecked && !emailDisabled">
+                <button @click="sendCode" :disabled="sendBtnLoading"
+                  class="btn btn-primary btn-lg w-full rounded-2xl font-black shadow-xl shadow-primary/20 h-14 border-none">
+                  {{ sendBtnText }}
+                </button>
+              </div>
+            </transition>
 
-        <!-- 1단계: 이메일 + 중복 확인 -->
-        <div>
-          <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1.5">이메일</label>
-          <div class="flex gap-2">
-            <input v-model="email" @input="onEmailInput" type="email" placeholder="이메일 입력" :disabled="emailDisabled"
-              class="flex-1 px-4 py-3 bg-gray-50 dark:bg-[#121212] border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors disabled:opacity-50" />
-            <button @click="checkEmail" :disabled="emailCheckLoading || emailDisabled"
-              :class="emailChecked
-                ? 'bg-green-600 dark:bg-green-500 text-white cursor-default'
-                : 'bg-gray-900 dark:bg-white text-white dark:text-black hover:bg-gray-700 dark:hover:bg-gray-200'"
-              class="px-3 py-3 font-bold rounded-lg text-xs transition-colors whitespace-nowrap disabled:opacity-50">
-              {{ emailChecked ? '확인 완료' : (emailCheckLoading ? '확인 중...' : '중복 확인') }}
-            </button>
+            <!-- 3단계: 인증번호 입력 -->
+            <transition name="slide-up">
+              <div v-if="showCodeSection" class="form-control">
+                <label class="label pt-0"><span class="label-text text-xs font-black text-base-content/40 ml-1">인증번호</span></label>
+                <div class="flex gap-2">
+                  <input v-model="code" type="text" placeholder="6자리 숫자" maxlength="6"
+                    class="input input-lg bg-base-200 border-none focus:bg-white focus:ring-2 focus:ring-primary/20 rounded-2xl font-black text-center tracking-[0.5em] transition-all h-14 flex-1" />
+                  <button @click="verifyCode" class="btn btn-lg bg-base-content text-base-100 rounded-2xl px-8 h-14 border-none font-black transition-all active:scale-95">
+                    인증하기
+                  </button>
+                </div>
+              </div>
+            </transition>
+
+            <!-- 4단계: 나머지 정보 -->
+            <transition name="slide-up">
+              <div v-if="showRegisterSection" class="space-y-4 pt-4 border-t border-base-300/30 animate-in fade-in slide-in-from-bottom-4">
+                <div class="form-control">
+                  <label class="label pt-0"><span class="label-text text-xs font-black text-base-content/40 ml-1">이름</span></label>
+                  <input v-model="name" type="text" placeholder="홍길동" 
+                    class="input input-lg bg-base-200 border-none focus:bg-white focus:ring-2 focus:ring-primary/20 rounded-2xl font-bold transition-all h-14" />
+                </div>
+                <div class="form-control">
+                  <label class="label pt-0"><span class="label-text text-xs font-black text-base-content/40 ml-1">비밀번호</span></label>
+                  <input v-model="password" type="password" placeholder="8자 이상 입력" 
+                    class="input input-lg bg-base-200 border-none focus:bg-white focus:ring-2 focus:ring-primary/20 rounded-2xl font-bold transition-all h-14" />
+                </div>
+                <div class="form-control">
+                  <label class="label pt-0"><span class="label-text text-xs font-black text-base-content/40 ml-1">전화번호</span></label>
+                  <input v-model="phone" type="tel" placeholder="01012345678" 
+                    class="input input-lg bg-base-200 border-none focus:bg-white focus:ring-2 focus:ring-primary/20 rounded-2xl font-bold transition-all h-14" />
+                </div>
+                <button @click="register" class="btn btn-primary btn-lg w-full mt-4 rounded-2xl font-black shadow-xl shadow-primary/20 h-14 border-none">
+                  가입 완료하기
+                </button>
+              </div>
+            </transition>
+          </div>
+
+          <div class="mt-10 pt-8 border-t border-base-300/30 text-center">
+            <p class="text-sm font-bold text-base-content/40">
+              이미 계정이 있으신가요?
+              <RouterLink to="/login" class="text-primary hover:underline ml-2">로그인</RouterLink>
+            </p>
           </div>
         </div>
-
-        <!-- 2단계: 인증번호 발송 (중복 확인 통과 후 활성화) -->
-        <div v-if="!emailDisabled">
-          <button @click="sendCode" :disabled="!emailChecked || sendBtnLoading"
-            class="w-full py-3 bg-gray-900 dark:bg-white text-white dark:text-black font-bold rounded-lg text-sm hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-            {{ sendBtnText }}
-          </button>
-        </div>
-
-        <!-- 3단계: 인증번호 입력 -->
-        <div v-if="showCodeSection">
-          <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1.5">인증번호</label>
-          <div class="flex gap-2">
-            <input v-model="code" type="text" placeholder="인증번호 입력" maxlength="6"
-              class="flex-1 px-4 py-3 bg-gray-50 dark:bg-[#121212] border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors" />
-            <button @click="verifyCode"
-              class="px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-black font-bold rounded-lg text-xs hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors whitespace-nowrap">
-              인증하기
-            </button>
-          </div>
-        </div>
-
-        <!-- 4단계: 나머지 정보 -->
-        <div v-if="showRegisterSection" class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1.5">이름</label>
-            <input v-model="name" type="text" placeholder="이름 입력"
-              class="w-full px-4 py-3 bg-gray-50 dark:bg-[#121212] border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1.5">비밀번호</label>
-            <input v-model="password" type="password" placeholder="비밀번호 입력"
-              class="w-full px-4 py-3 bg-gray-50 dark:bg-[#121212] border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1.5">전화번호</label>
-            <input v-model="phone" type="tel" placeholder="전화번호 입력 (예: 01012345678)"
-              class="w-full px-4 py-3 bg-gray-50 dark:bg-[#121212] border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors" />
-          </div>
-          <button @click="register"
-            class="w-full py-3.5 bg-gray-900 dark:bg-white text-white dark:text-black font-bold rounded-lg text-sm hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors">
-            회원가입
-          </button>
-        </div>
-
       </div>
-
-      <p class="text-center text-sm text-gray-500 mt-6">
-        이미 계정이 있으신가요?
-        <RouterLink to="/login" class="text-gray-900 dark:text-white font-medium hover:underline">로그인</RouterLink>
-      </p>
     </div>
-
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+
+.slide-up-enter-active { transition: all 0.4s ease-out; }
+.slide-up-enter-from { opacity: 0; transform: translateY(20px); }
+</style>
