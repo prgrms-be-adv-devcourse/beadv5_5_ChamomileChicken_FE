@@ -1,5 +1,6 @@
 const KAKAO_SCRIPT_ID = 'kakao-map-sdk'
 const POSTCODE_SCRIPT_ID = 'daum-postcode-sdk'
+const kakaoMapKey = window.__APP_CONFIG__?.VITE_KAKAO_MAP_KEY || import.meta.env.VITE_KAKAO_MAP_KEY
 
 function createLoadError(code, message) {
   const error = new Error(message)
@@ -33,14 +34,14 @@ function loadScript(id, src) {
 }
 
 export async function loadKakaoMaps() {
-  if (!import.meta.env.VITE_KAKAO_MAP_KEY) {
+  if (!kakaoMapKey) {
     throw createLoadError('KAKAO_KEY_MISSING', 'VITE_KAKAO_MAP_KEY is not set.')
   }
 
   try {
     await loadScript(
       KAKAO_SCRIPT_ID,
-      `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${import.meta.env.VITE_KAKAO_MAP_KEY}&autoload=false&libraries=services`,
+      `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoMapKey}&autoload=false&libraries=services`,
     )
   } catch (error) {
     throw createLoadError('KAKAO_MAP_LOAD_FAILED', error.message)

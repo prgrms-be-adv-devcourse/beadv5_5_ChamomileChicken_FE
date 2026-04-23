@@ -2,8 +2,11 @@ import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 import router from '@/router'
 
+const gatewayUrl = window.__APP_CONFIG__?.GATEWAY_SERVICE_URL?.replace(/\/+$/, '') || ''
+const apiBaseUrl = gatewayUrl ? `${gatewayUrl}/api/v1` : '/api/v1'
+
 const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: apiBaseUrl,
   withCredentials: true,
 })
 
@@ -35,7 +38,7 @@ api.interceptors.response.use(
       originalRequest._retry = true
       isRefreshing = true
       try {
-        const res = await axios.post('/api/v1/auth/reissue', {}, { withCredentials: true })
+        const res = await axios.post(`${apiBaseUrl}/auth/reissue`, {}, { withCredentials: true })
         const newToken = res.data?.data?.accessToken ?? res.data?.accessToken ?? res.data?.data?.access_token ?? res.data?.access_token
         if (newToken) {
           auth.setToken(newToken)

@@ -15,6 +15,7 @@ const error = ref('')
 const emailError = ref('')
 const passwordError = ref('')
 const registeredMsg = route.query.registered === 'true'
+const gatewayUrl = window.__APP_CONFIG__?.GATEWAY_SERVICE_URL?.replace(/\/+$/, '') || ''
 
 function validateEmail(val) {
   if (!val) return '이메일을 입력해주세요.'
@@ -25,8 +26,6 @@ function validatePassword(val) {
   if (!val) return '비밀번호를 입력해주세요.'
   return ''
 }
-
-const GATEWAY_URL = 'http://localhost:8080'
 
 async function login() {
   emailError.value = validateEmail(email.value)
@@ -45,7 +44,8 @@ async function login() {
 }
 
 function loginWithSocial(provider) {
-  window.location.href = `${GATEWAY_URL}/oauth2/authorization/${provider}`
+  const oauthPath = `/oauth2/authorization/${provider}`
+  window.location.href = gatewayUrl ? `${gatewayUrl}${oauthPath}` : oauthPath
 }
 </script>
 
