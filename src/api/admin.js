@@ -2,17 +2,17 @@ import api from './index'
 
 export const adminApi = {
   // 유저 관리
-  getUsers: () => api.get('/admins/users'),
+  getUsers: (params) => api.get('/admins/users', { params }),
   getUserDetail: (userId) => api.get(`/admins/users/${userId}`),
   approveSeller: (userId) => api.patch(`/admins/users/${userId}/approve-seller`),
 
   // 상품 관리
-  getProducts: () => api.get('/admins/products'),
+  getProducts: (params) => api.get('/admins/products', { params }),
   forceDownProduct: (productId) => api.patch(`/admins/products/${productId}/force-down`),
 
   // 주문/정산 조회
-  getOrders: () => api.get('/admins/orders'),
-  getSettlements: () => api.get('/admins/settlements'),
+  getOrders: (params) => api.get('/admins/orders', { params }),
+  getSettlements: (params) => api.get('/admins/settlements', { params }),
 
   // 리뷰 관리
   deleteReview: (reviewId) => api.delete(`/admins/reviews/${reviewId}`),

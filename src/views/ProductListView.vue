@@ -94,7 +94,8 @@ function formatPrice(price) {
 const banners = [
   { src: '/winter-banner.png', alt: '겨울 특별 클래스' },
   { src: '/ilon-banner.png', alt: '추천 클래스' },
-  { src: '/newjeans.png', alt: 'New Jeans 클래스' },
+  { src: '/newjeans-banner.png', alt: 'New Jeans 클래스' },
+  { src: '/son-potato-banner.png', alt: '손호준의 감자 클래스' },
 ]
 const bannerIndex = ref(0)
 let bannerTimer = null
@@ -118,6 +119,35 @@ function nextBanner() {
 function restartBannerAuto() {
   clearInterval(bannerTimer)
   startBannerAuto()
+}
+
+function onBannerBeforeEnter(el) {
+  el.style.height = '0'
+  el.style.overflow = 'hidden'
+  el.style.opacity = '0'
+}
+function onBannerEnter(el, done) {
+  const h = el.scrollHeight
+  el.style.transition = 'height 0.4s ease, opacity 0.4s ease'
+  el.style.height = h + 'px'
+  el.style.opacity = '1'
+  el.addEventListener('transitionend', done, { once: true })
+}
+function onBannerAfterEnter(el) {
+  el.style.height = ''
+  el.style.overflow = ''
+  el.style.opacity = ''
+  el.style.transition = ''
+}
+function onBannerBeforeLeave(el) {
+  el.style.height = el.scrollHeight + 'px'
+  el.style.overflow = 'hidden'
+}
+function onBannerLeave(el, done) {
+  el.style.transition = 'height 0.4s ease, opacity 0.4s ease'
+  el.style.height = '0'
+  el.style.opacity = '0'
+  el.addEventListener('transitionend', done, { once: true })
 }
 </script>
 
@@ -185,52 +215,64 @@ function restartBannerAuto() {
         </form>
       </div>
 
-      <!-- Banner Carousel -->
-      <div class="mb-4">
-        <h2 class="text-xl font-black text-base-content">🔥 잡아 클래스 소식</h2>
-      </div>
-      <div class="relative mb-12 rounded-[28px] overflow-hidden shadow-md select-none">
-        <transition name="banner-fade" mode="out-in">
-          <img
-            :key="bannerIndex"
-            :src="banners[bannerIndex].src"
-            :alt="banners[bannerIndex].alt"
-            class="w-full object-cover aspect-[3/2]"
-          />
-        </transition>
+      <!-- Banner Carousel (검색 중엔 슬라이드 업) -->
+      <transition
+        @before-enter="onBannerBeforeEnter"
+        @enter="onBannerEnter"
+        @after-enter="onBannerAfterEnter"
+        @before-leave="onBannerBeforeLeave"
+        @leave="onBannerLeave"
+      >
+        <div v-if="!searchQuery">
+          <div class="mb-4">
+            <h2 class="text-xl font-black text-base-content">🔥 잡아 클래스 소식</h2>
+          </div>
+          <div class="relative mb-12 rounded-[28px] overflow-hidden shadow-md select-none">
+            <transition name="banner-fade" mode="out-in">
+              <img
+                :key="bannerIndex"
+                :src="banners[bannerIndex].src"
+                :alt="banners[bannerIndex].alt"
+                class="w-full object-cover aspect-[16/9]"
+              />
+            </transition>
 
-        <!-- 좌 화살표 -->
-        <button
-          @click="prevBanner"
-          class="absolute left-3 top-1/2 -translate-y-1/2 btn btn-circle btn-sm bg-base-100/70 hover:bg-base-100 border-none shadow backdrop-blur-sm"
-          aria-label="이전 배너"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
+            <!-- 좌 화살표 -->
+            <button
+              @click="prevBanner"
+              class="absolute left-3 top-1/2 -translate-y-1/2 btn btn-circle btn-sm bg-base-100/70 hover:bg-base-100 border-none shadow backdrop-blur-sm"
+              aria-label="이전 배너"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
 
-        <!-- 우 화살표 -->
-        <button
-          @click="nextBanner"
-          class="absolute right-3 top-1/2 -translate-y-1/2 btn btn-circle btn-sm bg-base-100/70 hover:bg-base-100 border-none shadow backdrop-blur-sm"
-          aria-label="다음 배너"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
+            <!-- 우 화살표 -->
+            <button
+              @click="nextBanner"
+              class="absolute right-3 top-1/2 -translate-y-1/2 btn btn-circle btn-sm bg-base-100/70 hover:bg-base-100 border-none shadow backdrop-blur-sm"
+              aria-label="다음 배너"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
 
-        <!-- 인디케이터 -->
-        <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
-          <button
-            v-for="(_, i) in banners"
-            :key="i"
-            @click="bannerIndex = i; restartBannerAuto()"
-            :class="['w-2 h-2 rounded-full transition-all', i === bannerIndex ? 'bg-white w-5' : 'bg-white/50']"
-          />
+            <!-- 인디케이터 -->
+            <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
+              <button
+                v-for="(_, i) in banners"
+                :key="i"
+                @click="bannerIndex = i; restartBannerAuto()"
+                :class="['w-2 h-2 rounded-full transition-all', i === bannerIndex ? 'bg-white w-5' : 'bg-white/50']"
+              />
+            </div>
+          </div>
+
+          <hr class="border-base-300 mb-12" />
         </div>
-      </div>
+      </transition>
 
       <!-- Error -->
       <div v-if="errorMessage" role="alert" class="alert bg-error/10 border-none text-error mb-8 rounded-2xl animate-in fade-in slide-in-from-top-4">

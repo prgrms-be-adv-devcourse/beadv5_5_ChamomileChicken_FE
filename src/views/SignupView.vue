@@ -104,7 +104,7 @@ async function register() {
     <div class="hero-content w-full max-w-[480px] p-4">
       <div class="card w-full bg-base-100 shadow-sm border border-base-300/30 rounded-[40px] overflow-hidden animate-in fade-in zoom-in duration-500">
         <div class="card-body p-8 lg:p-12">
-          <div class="text-center mb-10">
+          <div class="text-center mb-6">
             <RouterLink to="/products">
               <img src="/logo.svg" class="h-12 lg:h-14 mx-auto mb-6 hover:scale-105 transition-transform" alt="Jaba Class" />
             </RouterLink>
@@ -113,7 +113,7 @@ async function register() {
           </div>
 
           <!-- Alert Messages -->
-          <div class="space-y-4 mb-8">
+          <div v-if="error || success" class="space-y-4 mb-6">
             <div v-if="error" class="alert bg-error/10 border-none text-error py-4 rounded-2xl animate-shake">
               <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-5 w-5" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               <span class="text-sm font-black">{{ error }}</span>
@@ -132,7 +132,7 @@ async function register() {
                 <input v-model="email" @input="onEmailInput" type="email" placeholder="email@example.com" :disabled="emailDisabled"
                   class="input input-lg bg-base-200 border-none focus:bg-white focus:ring-2 focus:ring-primary/20 rounded-2xl font-bold transition-all h-14 flex-1 disabled:opacity-50" />
                 <button @click="checkEmail" :disabled="emailCheckLoading || emailDisabled"
-                  class="btn btn-lg rounded-2xl px-6 h-14 border-none shadow-sm transition-all active:scale-95"
+                  class="btn rounded-2xl px-6 h-14 border-none shadow-sm transition-all active:scale-95 text-sm font-black shrink-0"
                   :class="emailChecked ? 'bg-success/10 text-success hover:bg-success/20' : 'bg-base-content text-base-100'">
                   <span v-if="emailCheckLoading" class="loading loading-spinner loading-sm"></span>
                   <span v-else class="font-black">{{ emailChecked ? '확인됨' : '중복확인' }}</span>
