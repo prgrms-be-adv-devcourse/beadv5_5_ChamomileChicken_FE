@@ -9,7 +9,7 @@ const auth = useAuthStore()
 
 const amountInput = ref('')
 const error = ref('')
-const tossClientKey = import.meta.env.VITE_TOSS_CLIENT_KEY
+const tossClientKey = window.__APP_CONFIG__?.VITE_TOSS_CLIENT_KEY || import.meta.env.VITE_TOSS_CLIENT_KEY
 const isSubmitting = ref(false)
 
 onMounted(async () => {

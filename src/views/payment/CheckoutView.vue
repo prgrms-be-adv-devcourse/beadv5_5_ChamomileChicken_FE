@@ -25,7 +25,7 @@ const scheduleLabel = computed(() => {
   return [scheduleDt, startTime && endTime ? `${startTime} ~ ${endTime}` : ''].filter(Boolean).join(' | ')
 })
 
-const tossClientKey = import.meta.env.VITE_TOSS_CLIENT_KEY
+const tossClientKey = window.__APP_CONFIG__?.VITE_TOSS_CLIENT_KEY || import.meta.env.VITE_TOSS_CLIENT_KEY
 const isPureDeposit = computed(() => amount.value === 0)
 const error = ref('')
 const isPreparing = ref(false)
