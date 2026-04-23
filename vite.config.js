@@ -19,6 +19,10 @@ export default defineConfig(({ mode }) => {
           target: env.API_TARGET ?? 'http://localhost:8080',
           changeOrigin: true,
         },
+        '/oauth2/authorization': {
+          target: env.API_TARGET ?? 'http://localhost:8080',
+          changeOrigin: true,
+        },
       },
     },
   }

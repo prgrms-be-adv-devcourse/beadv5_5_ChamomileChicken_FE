@@ -12,6 +12,31 @@ const settlements = ref([])
 const loading = ref(false)
 const sidebarOpen = ref(true)
 
+// 필터 상태
+const userFilter = ref({ role: '', name: '', email: '' })
+const productFilter = ref({ status: '', sellerEmail: '', title: '' })
+const orderFilter = ref({ status: '', sellerEmail: '', startDate: '', endDate: '' })
+const settlementFilter = ref({ status: '', sellerEmail: '', settlementMonth: '' })
+
+function cleanParams(obj) {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== '' && v != null))
+}
+
+function resetUserFilter() { Object.assign(userFilter.value, { role: '', name: '', email: '' }) }
+function resetProductFilter() { Object.assign(productFilter.value, { status: '', sellerEmail: '', title: '' }) }
+function resetOrderFilter() { Object.assign(orderFilter.value, { status: '', sellerEmail: '', startDate: '', endDate: '' }) }
+function resetSettlementFilter() { Object.assign(settlementFilter.value, { status: '', sellerEmail: '', settlementMonth: '' }) }
+
+async function resolveSellerIdByEmail(email) {
+  if (!email) return undefined
+  try {
+    const res = await adminApi.getUsers({ email })
+    return (res.data?.data?.content ?? [])[0]?.id ?? undefined
+  } catch {
+    return undefined
+  }
+}
+
 const userCache = ref({})
 
 async function resolveUsers(ids) {
@@ -43,19 +68,25 @@ async function fetchData() {
   loading.value = true
   try {
     if (activeTab.value === 'users') {
-      const res = await adminApi.getUsers()
+      const res = await adminApi.getUsers(cleanParams(userFilter.value))
       users.value = res.data?.data?.content ?? []
     } else if (activeTab.value === 'products') {
-      const res = await adminApi.getProducts()
+      const { sellerEmail, ...rest } = productFilter.value
+      const sellerId = await resolveSellerIdByEmail(sellerEmail)
+      const res = await adminApi.getProducts(cleanParams({ ...rest, sellerId }))
       products.value = res.data?.data?.content ?? []
       await resolveUsers(products.value.map(p => p.sellerId))
     } else if (activeTab.value === 'orders') {
-      const res = await adminApi.getOrders()
+      const { sellerEmail, ...rest } = orderFilter.value
+      const sellerId = await resolveSellerIdByEmail(sellerEmail)
+      const res = await adminApi.getOrders(cleanParams({ ...rest, sellerId }))
       orders.value = res.data?.data?.content ?? []
       const orderUserIds = orders.value.flatMap(o => [o.userId, o.sellerId].filter(Boolean))
       await resolveUsers(orderUserIds)
     } else if (activeTab.value === 'settlements') {
-      const res = await adminApi.getSettlements()
+      const { sellerEmail, ...rest } = settlementFilter.value
+      const sellerId = await resolveSellerIdByEmail(sellerEmail)
+      const res = await adminApi.getSettlements(cleanParams({ ...rest, sellerId }))
       settlements.value = res.data?.data?.content ?? []
       await resolveUsers(settlements.value.map(s => s.sellerId))
     }
@@ -204,6 +235,28 @@ const tabTitles = {
 
           <!-- Users -->
           <div v-if="activeTab === 'users'" class="card bg-base-100 rounded-[28px] shadow-sm border border-base-300/20 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <!-- 필터 -->
+            <div class="p-4 border-b border-base-300/20 flex flex-wrap gap-3 items-end">
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-black text-base-content/40 uppercase tracking-widest">역할</label>
+                <select v-model="userFilter.role" class="select select-sm rounded-xl border-base-300/40 bg-base-200/50 font-semibold min-w-[110px]">
+                  <option value="">전체</option>
+                  <option value="USER">수강생</option>
+                  <option value="SELLER">판매자</option>
+                  <option value="ADMIN">관리자</option>
+                </select>
+              </div>
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-black text-base-content/40 uppercase tracking-widest">이름</label>
+                <input v-model="userFilter.name" type="text" placeholder="이름 검색" class="input input-sm rounded-xl border-base-300/40 bg-base-200/50 w-36" @keyup.enter="fetchData" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-black text-base-content/40 uppercase tracking-widest">이메일</label>
+                <input v-model="userFilter.email" type="text" placeholder="이메일 검색" class="input input-sm rounded-xl border-base-300/40 bg-base-200/50 w-44" @keyup.enter="fetchData" />
+              </div>
+              <button @click="fetchData" class="btn btn-primary btn-sm rounded-xl font-black px-5">검색</button>
+              <button @click="resetUserFilter(); fetchData()" class="btn btn-ghost btn-sm rounded-xl font-black text-base-content/40">초기화</button>
+            </div>
             <div class="overflow-x-auto">
               <table class="table w-full">
                 <thead>
@@ -242,6 +295,27 @@ const tabTitles = {
 
           <!-- Products -->
           <div v-else-if="activeTab === 'products'" class="card bg-base-100 rounded-[28px] shadow-sm border border-base-300/20 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <!-- 필터 -->
+            <div class="p-4 border-b border-base-300/20 flex flex-wrap gap-3 items-end">
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-black text-base-content/40 uppercase tracking-widest">상태</label>
+                <select v-model="productFilter.status" class="select select-sm rounded-xl border-base-300/40 bg-base-200/50 font-semibold min-w-[110px]">
+                  <option value="">전체</option>
+                  <option value="ENABLE">활성</option>
+                  <option value="DISABLE">비활성</option>
+                </select>
+              </div>
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-black text-base-content/40 uppercase tracking-widest">판매자 이메일</label>
+                <input v-model="productFilter.sellerEmail" type="text" placeholder="판매자 이메일" class="input input-sm rounded-xl border-base-300/40 bg-base-200/50 w-48" @keyup.enter="fetchData" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-black text-base-content/40 uppercase tracking-widest">상품명</label>
+                <input v-model="productFilter.title" type="text" placeholder="상품명 검색" class="input input-sm rounded-xl border-base-300/40 bg-base-200/50 w-44" @keyup.enter="fetchData" />
+              </div>
+              <button @click="fetchData" class="btn btn-primary btn-sm rounded-xl font-black px-5">검색</button>
+              <button @click="resetProductFilter(); fetchData()" class="btn btn-ghost btn-sm rounded-xl font-black text-base-content/40">초기화</button>
+            </div>
             <div class="overflow-x-auto">
               <table class="table w-full">
                 <thead>
@@ -272,9 +346,12 @@ const tabTitles = {
                       <button
                         v-if="product.status === 'ENABLE'"
                         @click="forceDown(product.id)"
-                        class="btn btn-error btn-xs rounded-xl font-black"
+                        class="btn btn-sm rounded-xl font-black bg-error/10 text-error hover:bg-error hover:text-white border-none gap-1.5 transition-all"
                       >
-                        상품 강제 삭제
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                        </svg>
+                        상픔 판매 중지
                       </button>
                     </td>
                   </tr>
@@ -285,6 +362,34 @@ const tabTitles = {
 
           <!-- Orders -->
           <div v-else-if="activeTab === 'orders'" class="card bg-base-100 rounded-[28px] shadow-sm border border-base-300/20 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <!-- 필터 -->
+            <div class="p-4 border-b border-base-300/20 flex flex-wrap gap-3 items-end">
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-black text-base-content/40 uppercase tracking-widest">상태</label>
+                <select v-model="orderFilter.status" class="select select-sm rounded-xl border-base-300/40 bg-base-200/50 font-semibold min-w-[120px]">
+                  <option value="">전체</option>
+                  <option value="PENDING">PENDING</option>
+                  <option value="PAID">PAID</option>
+                  <option value="FAILED">FAILED</option>
+                  <option value="REFUNDED">REFUNDED</option>
+                  <option value="EXPIRED">EXPIRED</option>
+                </select>
+              </div>
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-black text-base-content/40 uppercase tracking-widest">판매자 이메일</label>
+                <input v-model="orderFilter.sellerEmail" type="text" placeholder="판매자 이메일" class="input input-sm rounded-xl border-base-300/40 bg-base-200/50 w-48" @keyup.enter="fetchData" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-black text-base-content/40 uppercase tracking-widest">시작일</label>
+                <input v-model="orderFilter.startDate" type="datetime-local" class="input input-sm rounded-xl border-base-300/40 bg-base-200/50" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-black text-base-content/40 uppercase tracking-widest">종료일</label>
+                <input v-model="orderFilter.endDate" type="datetime-local" class="input input-sm rounded-xl border-base-300/40 bg-base-200/50" />
+              </div>
+              <button @click="fetchData" class="btn btn-primary btn-sm rounded-xl font-black px-5">검색</button>
+              <button @click="resetOrderFilter(); fetchData()" class="btn btn-ghost btn-sm rounded-xl font-black text-base-content/40">초기화</button>
+            </div>
             <div class="overflow-x-auto">
               <table class="table w-full">
                 <thead>
@@ -326,6 +431,30 @@ const tabTitles = {
 
           <!-- Settlements -->
           <div v-else-if="activeTab === 'settlements'" class="card bg-base-100 rounded-[28px] shadow-sm border border-base-300/20 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <!-- 필터 -->
+            <div class="p-4 border-b border-base-300/20 flex flex-wrap gap-3 items-end">
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-black text-base-content/40 uppercase tracking-widest">상태</label>
+                <select v-model="settlementFilter.status" class="select select-sm rounded-xl border-base-300/40 bg-base-200/50 font-semibold min-w-[130px]">
+                  <option value="">전체</option>
+                  <option value="READY">READY</option>
+                  <option value="TRANSFERRING">TRANSFERRING</option>
+                  <option value="SENT">SENT</option>
+                  <option value="FAILED">FAILED</option>
+                  <option value="HOLD">HOLD</option>
+                </select>
+              </div>
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-black text-base-content/40 uppercase tracking-widest">판매자 이메일</label>
+                <input v-model="settlementFilter.sellerEmail" type="text" placeholder="판매자 이메일" class="input input-sm rounded-xl border-base-300/40 bg-base-200/50 w-48" @keyup.enter="fetchData" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-black text-base-content/40 uppercase tracking-widest">정산 월</label>
+                <input v-model="settlementFilter.settlementMonth" type="month" class="input input-sm rounded-xl border-base-300/40 bg-base-200/50" />
+              </div>
+              <button @click="fetchData" class="btn btn-primary btn-sm rounded-xl font-black px-5">검색</button>
+              <button @click="resetSettlementFilter(); fetchData()" class="btn btn-ghost btn-sm rounded-xl font-black text-base-content/40">초기화</button>
+            </div>
             <div class="overflow-x-auto">
               <table class="table w-full">
                 <thead>
