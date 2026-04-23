@@ -4,6 +4,9 @@ export const productsApi = {
   list: (params) =>
     api.get('/products', { params }),
 
+  recommendations: () =>
+    api.get('/recommendations'),
+  
   detail: (productId) =>
     api.get(`/products/${productId}`),
 
