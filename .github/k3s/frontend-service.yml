@@ -21,6 +21,9 @@ spec:
 
           envFrom:
             - configMapRef:
+                name: common-config
+                optional: true
+            - configMapRef:
                 name: frontend-config
                 optional: true
             - secretRef:
