@@ -17,7 +17,7 @@ const loadError = ref('')
 
 onMounted(async () => {
   if (!auth.user) await auth.fetchUser()
-  if (!auth.isSeller) { router.push('/products'); return }
+  if (!auth.isSeller && !auth.isAdmin) { router.push('/products'); return }
   await loadProducts()
 })
 
