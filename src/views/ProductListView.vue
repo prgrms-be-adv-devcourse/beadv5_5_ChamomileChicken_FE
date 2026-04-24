@@ -83,25 +83,15 @@ async function fetchRecommendations() {
       return
     }
 
-    const recommendationIds = recommendationItems.map(getRecommendationProductId)
-    const detailResults = await Promise.allSettled(
-      recommendationIds.map((id) => id ? productsApi.detail(id) : Promise.resolve(null))
-    )
-
-    recommendedProducts.value = recommendationItems.map((item, index) => {
-      const detailResult = detailResults[index]
-      const detailData = detailResult?.status === 'fulfilled'
-        ? extractApiData(detailResult.value)
-        : null
-      const id = recommendationIds[index]
-
+    recommendedProducts.value = recommendationItems.map((item) => {
+      const id = getRecommendationProductId(item)
       return {
         id,
-        title: detailData?.title ?? item.title,
+        title: item?.title ?? '',
         reason: item.reason,
-        price: detailData?.price ?? null,
-        sellerName: detailData?.sellerName ?? '',
-        thumbnailPath: detailData?.thumbnailPath ?? '',
+        price: item?.price ?? null,
+        sellerName: item?.sellerName ?? '',
+        thumbnailPath: item?.thumbnailPath ?? '',
       }
     })
   } catch (e) {
