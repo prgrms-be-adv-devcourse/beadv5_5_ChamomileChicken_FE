@@ -14,41 +14,47 @@ function formatPrice(price) {
 </script>
 
 <template>
-  <article
-    class="group overflow-hidden rounded-[12px] border border-base-300/40 bg-base-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,0,0,0.08)]"
-  >
-    <figure class="relative overflow-hidden rounded-[12px] bg-base-100">
+  <article class="group overflow-hidden rounded-2xl bg-base-100 transition-shadow duration-300 hover:shadow-md">
+    <!-- 이미지만 확대 (카드 전체는 고정) -->
+    <figure class="relative overflow-hidden rounded-2xl bg-base-200 aspect-[4/3]">
       <img
         v-if="product.thumbnailPath"
         :src="resolveImageUrl(product.thumbnailPath)"
         :alt="product.title"
-        class="block h-auto w-full transition-transform duration-500 group-hover:scale-[1.03]"
+        class="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
       />
-      <div v-else class="flex aspect-square w-full items-center justify-center bg-base-100">
+      <div v-else class="flex h-full w-full items-center justify-center">
         <span class="text-5xl opacity-20">🎨</span>
-      </div>
-      <div class="absolute left-3 top-3">
-        <span class="badge rounded-lg border-none bg-white/90 px-3 py-2 font-black text-primary backdrop-blur">OPEN</span>
       </div>
     </figure>
 
-    <div class="p-4">
-      <div class="mb-2 flex items-center gap-2">
-        <div class="flex h-6 w-6 items-center justify-center rounded-full bg-base-100 ring-1 ring-base-300/40 text-[10px]">🏢</div>
-        <p class="truncate text-xs font-bold uppercase tracking-wider text-base-content/50">{{ product.sellerName }}</p>
-      </div>
-      <h2 class="mb-2 line-clamp-2 text-base font-extrabold leading-tight transition-colors group-hover:text-primary">
+    <div class="px-0.5 pt-3 pb-2">
+      <p class="mb-1 truncate text-xs font-semibold text-base-content/60">{{ product.sellerName }}</p>
+
+      <h2 class="mb-3 line-clamp-2 text-base-content font-extrabold leading-snug text-base-content transition-colors group-hover:text-primary">
         {{ product.title }}
       </h2>
-      <div class="mt-auto flex items-end justify-between">
-        <p class="text-xl font-black tracking-tight text-base-content">
-          <span class="mr-0.5 text-sm font-bold">₩</span>{{ formatPrice(product.price) }}
-        </p>
-        <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-base-100 ring-1 ring-base-300/50 transition-all group-hover:bg-primary group-hover:text-white group-hover:ring-primary">
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+
+      <div class="mb-3 flex items-center gap-3 text-xs font-semibold text-base-content/60">
+        <span v-if="product.maxCapacity" class="flex items-center gap-1">
+          <svg class="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
-        </div>
+          <span>~{{ product.maxCapacity }}명</span>
+        </span>
+        <span v-if="product.duration" class="flex items-center gap-1">
+          <svg class="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>{{ product.duration }}분</span>
+        </span>
+      </div>
+
+      <div class="flex items-center justify-between border-t border-base-300/50 pt-2.5">
+        <span class="text-xs font-semibold text-base-content/60">인당</span>
+        <span class="text-[15px] font-black text-base-content">
+          {{ formatPrice(product.price) }}<span class="ml-0.5 text-xs font-bold">원~</span>
+        </span>
       </div>
     </div>
   </article>

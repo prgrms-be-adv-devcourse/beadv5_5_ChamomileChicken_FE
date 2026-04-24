@@ -123,6 +123,9 @@ function clampCurrentOffset() {
 function setRatio(value) {
   if (!currentEntry.value) return
   currentEntry.value.ratio = value
+  currentEntry.value.zoom = 1
+  currentEntry.value.offsetX = 0
+  currentEntry.value.offsetY = 0
 }
 
 function resetCurrent() {
@@ -295,11 +298,12 @@ onBeforeUnmount(() => {
             :style="{
               left: '50%',
               top: '50%',
-              transform: `translate(calc(-50% + ${currentEntry.offsetX}px), calc(-50% + ${currentEntry.offsetY}px)) scale(${currentEntry.zoom})`,
+              transform: `translate(calc(-50% + ${currentEntry.offsetX}px), calc(-50% + ${currentEntry.offsetY}px)) scale(${getDisplayScale(currentEntry)})`,
               transformOrigin: 'center center',
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
+              width: 'auto',
+              height: 'auto',
+              maxWidth: 'none',
+              maxHeight: 'none',
             }"
           />
         </div>

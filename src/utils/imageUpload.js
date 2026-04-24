@@ -1,5 +1,7 @@
-const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png'])
+const ALLOWED_IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png'])
 const DEFAULT_MAX_IMAGE_SIZE_MB = 10
+const DEFAULT_MAX_TOTAL_SIZE_MB = 50
 
 function formatSize(bytes) {
   const mb = bytes / (1024 * 1024)
@@ -8,12 +10,14 @@ function formatSize(bytes) {
 
 export function validateImageFiles(files, options = {}) {
   const maxImageSizeBytes = (options.maxImageSizeMb ?? DEFAULT_MAX_IMAGE_SIZE_MB) * 1024 * 1024
+  const maxTotalSizeBytes = (options.maxTotalSizeMb ?? DEFAULT_MAX_TOTAL_SIZE_MB) * 1024 * 1024
   const validFiles = []
   const errors = []
 
   for (const file of files) {
-    if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
-      errors.push(`"${file.name}"은 JPG/PNG/WEBP만 업로드할 수 있습니다.`)
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+    if (!ALLOWED_IMAGE_EXTENSIONS.has(ext) || !ALLOWED_IMAGE_TYPES.has(file.type)) {
+      errors.push(`"${file.name}"은 JPG/JPEG/PNG만 업로드할 수 있습니다.`)
       continue
     }
     if (file.size > maxImageSizeBytes) {
@@ -21,6 +25,12 @@ export function validateImageFiles(files, options = {}) {
       continue
     }
     validFiles.push(file)
+  }
+
+  const totalSize = validFiles.reduce((sum, f) => sum + f.size, 0)
+  if (totalSize > maxTotalSizeBytes) {
+    errors.push(`선택한 이미지의 총 용량이 ${options.maxTotalSizeMb ?? DEFAULT_MAX_TOTAL_SIZE_MB}MB를 초과했습니다. (${formatSize(totalSize)})`)
+    return { validFiles: [], errors }
   }
 
   return { validFiles, errors }

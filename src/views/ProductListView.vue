@@ -441,13 +441,13 @@ function onBannerLeave(el, done) {
           </p>
         </div>
 
-        <!-- Product Masonry -->
-        <div class="masonry-columns mb-16">
+        <!-- Product Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-5 gap-y-8 mb-16">
           <RouterLink
             v-for="product in products"
             :key="product.id"
             :to="`/products/${product.id}`"
-            class="masonry-item block"
+            class="block"
           >
             <ProductCard :product="product" />
           </RouterLink>
@@ -503,31 +503,5 @@ function onBannerLeave(el, done) {
 .banner-fade-enter-from,
 .banner-fade-leave-to {
   opacity: 0;
-}
-
-.masonry-columns {
-  column-count: 2;
-  column-gap: 12px;
-}
-
-.masonry-item {
-  break-inside: avoid;
-  margin-bottom: 12px;
-}
-
-@media (min-width: 768px) {
-  .masonry-columns {
-    column-gap: 16px;
-  }
-
-  .masonry-item {
-    margin-bottom: 16px;
-  }
-}
-
-@media (min-width: 1024px) {
-  .masonry-columns {
-    column-count: 3;
-  }
 }
 </style>
