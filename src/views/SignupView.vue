@@ -106,7 +106,15 @@ async function register() {
         <div class="card-body p-8 lg:p-12">
           <div class="text-center mb-6">
             <RouterLink to="/products">
-              <img src="/logo.svg" class="h-12 lg:h-14 mx-auto mb-6 hover:scale-105 transition-transform" alt="Jaba Class" />
+              <svg width="220" height="50" viewBox="0 0 220 50" xmlns="http://www.w3.org/2000/svg" class="h-12 lg:h-14 w-auto mx-auto mb-6 hover:scale-105 transition-transform">
+                <g transform="translate(10, 5)">
+                  <rect x="5" y="8" width="24" height="24" rx="8" fill="#E8F0FE" transform="rotate(-12 17 20)" />
+                  <rect x="12" y="12" width="24" height="24" rx="8" fill="#487BE5" transform="rotate(8 24 24)" />
+                  <path d="M 38 2 Q 40 8 46 10 Q 40 12 38 18 Q 36 12 30 10 Q 36 8 38 2 Z" fill="#FFC83D" />
+                </g>
+                <text x="65" y="34" font-family="'Pretendard', -apple-system, sans-serif" font-weight="800" font-size="26" fill="currentColor" letter-spacing="-0.5">Jaba</text>
+                <text x="125" y="34" font-family="'Pretendard', -apple-system, sans-serif" font-weight="700" font-size="22" fill="#487BE5" letter-spacing="-0.5">클래스</text>
+              </svg>
             </RouterLink>
             <h1 class="text-2xl font-black text-base-content tracking-tight">시작해볼까요? ✨</h1>
             <p class="text-base-content/40 mt-2 font-bold">간편하게 가입하고 클래스를 즐겨보세요</p>

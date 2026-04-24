@@ -43,7 +43,7 @@ const TYPE_META = {
 
 onMounted(async () => {
   if (!auth.user) await auth.fetchUser()
-  if (!auth.isSeller) { router.replace('/products'); return }
+  if (!auth.isSeller && !auth.isAdmin) { router.replace('/products'); return }
   await loadDetails(0)
 })
 
@@ -92,7 +92,17 @@ function shortId(value) { return value ? String(value).slice(0, 8) : '-' }
   <div class="bg-base-200 min-h-screen">
     <div class="navbar bg-base-100 shadow-sm sticky top-0 z-30 px-4 lg:px-8">
       <div class="flex-1">
-        <RouterLink to="/products"><img src="/logo.svg" class="h-20" alt="Jaba 클래스" /></RouterLink>
+        <RouterLink to="/products">
+          <svg width="220" height="50" viewBox="0 0 220 50" xmlns="http://www.w3.org/2000/svg" class="h-20 w-auto">
+            <g transform="translate(10, 5)">
+              <rect x="5" y="8" width="24" height="24" rx="8" fill="#E8F0FE" transform="rotate(-12 17 20)" />
+              <rect x="12" y="12" width="24" height="24" rx="8" fill="#487BE5" transform="rotate(8 24 24)" />
+              <path d="M 38 2 Q 40 8 46 10 Q 40 12 38 18 Q 36 12 30 10 Q 36 8 38 2 Z" fill="#FFC83D" />
+            </g>
+            <text x="65" y="34" font-family="'Pretendard', -apple-system, sans-serif" font-weight="800" font-size="26" fill="currentColor" letter-spacing="-0.5">Jaba</text>
+            <text x="125" y="34" font-family="'Pretendard', -apple-system, sans-serif" font-weight="700" font-size="22" fill="#487BE5" letter-spacing="-0.5">클래스</text>
+          </svg>
+        </RouterLink>
       </div>
       <div class="flex-none flex items-center gap-2">
         <ThemeToggle />
