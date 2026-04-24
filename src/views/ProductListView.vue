@@ -6,13 +6,17 @@ import { productsApi } from '@/api/products'
 import { authApi } from '@/api/auth'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { resolveImageUrl } from '@/utils/imageUrl'
+import { extractApiData } from '@/utils/api'
 
 const router = useRouter()
 const auth = useAuthStore()
 
 const products = ref([])
+const recommendedProducts = ref([])
 const loading = ref(true)
 const errorMessage = ref('')
+const recommendationError = ref('')
+const recommendationLoading = ref(false)
 const searchQuery = ref('')
 const currentPage = ref(0)
 const pageSize = ref(9)
@@ -49,11 +53,79 @@ async function fetchProducts() {
   }
 }
 
+function normalizeRecommendationPayload(payload) {
+  if (Array.isArray(payload)) return payload
+  if (Array.isArray(payload?.recommendations)) return payload.recommendations
+  if (Array.isArray(payload?.data?.recommendations)) return payload.data.recommendations
+  return []
+}
+
+function getRecommendationProductId(item) {
+  return item?.productId ?? item?.productid ?? item?.product_id ?? item?.id ?? null
+}
+
+async function fetchRecommendations() {
+  if (!auth.isLoggedIn) {
+    recommendedProducts.value = []
+    recommendationError.value = ''
+    return
+  }
+
+  recommendationLoading.value = true
+  recommendationError.value = ''
+
+  try {
+    const res = await productsApi.recommendations()
+    const recommendationItems = normalizeRecommendationPayload(extractApiData(res))
+
+    if (!recommendationItems.length) {
+      recommendedProducts.value = []
+      return
+    }
+
+    const recommendationIds = recommendationItems.map(getRecommendationProductId)
+    const detailResults = await Promise.allSettled(
+      recommendationIds.map((id) => id ? productsApi.detail(id) : Promise.resolve(null))
+    )
+
+    recommendedProducts.value = recommendationItems.map((item, index) => {
+      const detailResult = detailResults[index]
+      const detailData = detailResult?.status === 'fulfilled'
+        ? extractApiData(detailResult.value)
+        : null
+      const id = recommendationIds[index]
+
+      return {
+        id,
+        title: detailData?.title ?? item.title,
+        reason: item.reason,
+        price: detailData?.price ?? null,
+        sellerName: detailData?.sellerName ?? '',
+        thumbnailPath: detailData?.thumbnailPath ?? '',
+      }
+    })
+  } catch (e) {
+    recommendedProducts.value = []
+    const status = e.response?.status
+    if ([401, 403, 404, 500].includes(status)) {
+      recommendationError.value = ''
+      console.warn('[recommendations] fallback to empty state', {
+        status,
+        message: e.response?.data?.message || e.message,
+      })
+      return
+    }
+    recommendationError.value = e.response?.data?.message || '추천 클래스를 불러오지 못했습니다.'
+  } finally {
+    recommendationLoading.value = false
+  }
+}
+
 onMounted(async () => {
   if (auth.isLoggedIn && !auth.user) {
     await auth.fetchUser()
   }
-  await fetchProducts()
+  await Promise.all([fetchProducts(), fetchRecommendations()])
   startBannerAuto()
 })
 
@@ -278,6 +350,83 @@ function onBannerLeave(el, done) {
       <div v-if="errorMessage" role="alert" class="alert bg-error/10 border-none text-error mb-8 rounded-2xl animate-in fade-in slide-in-from-top-4">
         <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
         <span class="font-semibold">{{ errorMessage }}</span>
+      </div>
+
+      <div v-if="!searchQuery && auth.isLoggedIn" class="mb-12">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-xl font-black text-base-content">맞춤 추천 클래스</h2>
+            <p class="text-sm text-base-content/50 font-medium">최근 활동을 바탕으로 골라봤어요.</p>
+          </div>
+          <span v-if="recommendedProducts.length" class="badge badge-primary badge-lg border-none">{{ recommendedProducts.length }}개</span>
+        </div>
+
+        <div v-if="recommendationLoading" class="card bg-base-100 border border-base-300/30 rounded-[28px] shadow-sm">
+          <div class="card-body py-10 items-center text-center">
+            <span class="loading loading-spinner loading-md text-primary"></span>
+            <p class="text-base-content/40 font-medium">회원님을 위한 클래스를 고르는 중이에요...</p>
+          </div>
+        </div>
+
+        <div v-else-if="recommendationError" class="alert bg-warning/10 border-none text-warning rounded-2xl">
+          <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <span class="font-semibold">{{ recommendationError }}</span>
+        </div>
+
+        <div v-else-if="recommendedProducts.length" class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <component
+            v-for="item in recommendedProducts"
+            :key="item.id ?? `${item.title}-${item.reason}`"
+            :is="item.id ? 'RouterLink' : 'div'"
+            v-bind="item.id ? { to: `/products/${item.id}` } : {}"
+            class="card bg-base-100 border border-base-300/30 rounded-[28px] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all overflow-hidden group"
+          >
+            <div class="flex h-full">
+              <div class="w-28 sm:w-36 bg-base-200 overflow-hidden shrink-0">
+                <img
+                  v-if="item.thumbnailPath"
+                  :src="resolveImageUrl(item.thumbnailPath)"
+                  alt="추천 클래스 이미지"
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div v-else class="w-full h-full min-h-[132px] flex items-center justify-center bg-primary/5 text-4xl opacity-60">✨</div>
+              </div>
+              <div class="flex-1 p-5 flex flex-col">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="badge bg-primary/10 text-primary border-none font-black">For You</span>
+                  <span v-if="item.sellerName" class="text-xs text-base-content/40 font-bold">{{ item.sellerName }}</span>
+                </div>
+                <h3 class="text-lg font-extrabold text-base-content leading-tight mb-3 line-clamp-2 group-hover:text-primary transition-colors">
+                  {{ item.title }}
+                </h3>
+                <p class="text-sm text-base-content/60 font-medium leading-relaxed line-clamp-3 mb-4">
+                  {{ item.reason }}
+                </p>
+                <div class="mt-auto flex items-end justify-between">
+                  <p v-if="item.price !== null" class="text-xl font-black text-base-content">
+                    <span class="text-sm font-bold mr-0.5">₩</span>{{ formatPrice(item.price) }}
+                  </p>
+                  <p v-else class="text-sm text-base-content/30 font-bold">
+                    {{ item.id ? '상세 페이지에서 금액 확인' : '추천 사유 기반 결과' }}
+                  </p>
+                  <div class="w-10 h-10 rounded-2xl bg-base-200 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </component>
+        </div>
+
+        <div v-else class="card bg-base-100 border border-dashed border-base-300 rounded-[28px] shadow-sm">
+          <div class="card-body py-10 items-center text-center">
+            <div class="w-16 h-16 rounded-3xl bg-primary/10 text-3xl flex items-center justify-center mb-3">🎯</div>
+            <p class="font-bold text-base-content/70">아직 추천 결과가 없어요.</p>
+            <p class="text-sm text-base-content/40">찜하거나 둘러보면 더 잘 맞는 클래스를 보여드릴게요.</p>
+          </div>
+        </div>
       </div>
 
       <!-- Loading -->
