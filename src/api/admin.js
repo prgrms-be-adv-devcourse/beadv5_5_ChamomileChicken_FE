@@ -15,5 +15,9 @@ export const adminApi = {
   getSettlements: (params) => api.get('/admins/settlements', { params }),
 
   // 리뷰 관리
+  getReviews: (params) => api.get('/admins/reviews', { params }),
   deleteReview: (reviewId) => api.delete(`/admins/reviews/${reviewId}`),
+
+  // 대시보드
+  getDashboard: (year) => api.get('/admins/dashboard', { params: year ? { year } : {} }),
 }

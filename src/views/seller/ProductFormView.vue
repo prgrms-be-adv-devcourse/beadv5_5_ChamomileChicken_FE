@@ -41,7 +41,7 @@ const pendingItems = ref([])
 
 onMounted(async () => {
   if (!auth.user) await auth.fetchUser()
-  if (!auth.isSeller) router.push('/products')
+  if (!auth.isSeller && !auth.isAdmin) router.push('/products')
 })
 
 function normalizePositiveInteger(value) {
