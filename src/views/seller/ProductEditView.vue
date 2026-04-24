@@ -7,8 +7,10 @@ import { useAuthStore } from '@/stores/auth'
 import { productsApi } from '@/api/products'
 import { filesApi } from '@/api/files'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import ImageAdjustModal from '@/components/ImageAdjustModal.vue'
 import { loadDaumPostcode, loadKakaoMaps } from '@/utils/loadKakao'
 import { resolveImageUrl } from '@/utils/imageUrl'
+import { validateImageFiles } from '@/utils/imageUpload'
 
 const DT_UPLOADED = 'application/x-jabaclass-uploaded-index'
 
@@ -37,6 +39,8 @@ const addressStatusIsError = ref(false)
 const submitting = ref(false)
 const loading = ref(true)
 const uploading = ref(false)
+const cropperOpen = ref(false)
+const cropperFiles = ref([])
 
 const uploadedFileIds = ref([])
 const previews = ref([])
@@ -166,25 +170,55 @@ function readAsDataURL(file) {
 async function handleFileSelect(event) {
   const files = Array.from(event.target.files ?? [])
   const remaining = 10 - uploadedFileIds.value.length
-  const toUpload = files.slice(0, remaining)
-  if (toUpload.length === 0) { uploadStatus.value = '이미지는 최대 10개까지 등록할 수 있습니다.'; event.target.value = ''; return }
+  const candidates = files.slice(0, remaining)
+  if (candidates.length === 0) { uploadStatus.value = '이미지는 최대 10개까지 등록할 수 있습니다.'; event.target.value = ''; return }
+  const { validFiles, errors } = validateImageFiles(candidates, { maxImageSizeMb: 10 })
+  if (!validFiles.length) {
+    uploadStatus.value = errors[0] || '업로드 가능한 이미지가 없습니다.'
+    event.target.value = ''
+    return
+  }
+  cropperFiles.value = validFiles
+  cropperOpen.value = true
+  uploadStatus.value = errors.length ? errors[0] : ''
+  event.target.value = ''
+}
+
+function handleCropCancel() {
+  cropperOpen.value = false
+  cropperFiles.value = []
+}
+
+async function handleCropConfirm(processedItems) {
+  cropperOpen.value = false
+  cropperFiles.value = []
+  await uploadProcessedFiles(processedItems)
+}
+
+async function uploadProcessedFiles(processedItems) {
+  const toUpload = processedItems ?? []
+  if (!toUpload.length) return
   uploading.value = true
   uploadStatus.value = `이미지 업로드 중... (0/${toUpload.length})`
   for (let index = 0; index < toUpload.length; index += 1) {
-    const file = toUpload[index]
+    const { file, dataUrl } = toUpload[index]
     try {
+      const { validFiles, errors } = validateImageFiles([file], { maxImageSizeMb: 10 })
+      if (!validFiles.length) {
+        uploadStatus.value = errors[0] || `"${file.name}"은 업로드할 수 없습니다.`
+        continue
+      }
       const uploadRes = await filesApi.uploadRequest(file.name)
       const { fileId, uploadUrl } = uploadRes.data.data
       await fetch(uploadUrl, { method: 'PUT', body: await file.arrayBuffer() })
       await filesApi.complete(fileId)
       uploadedFileIds.value.push(fileId)
-      previews.value.push({ fileId, url: await readAsDataURL(file) })
+      previews.value.push({ fileId, url: dataUrl || await readAsDataURL(file) })
       uploadStatus.value = `이미지 업로드 중... (${index + 1}/${toUpload.length})`
     } catch { uploadStatus.value = `"${file.name}" 업로드에 실패했습니다.` }
   }
   uploading.value = false
   uploadStatus.value = uploadedFileIds.value.length ? `총 ${uploadedFileIds.value.length}개 이미지가 등록되어 있습니다.` : ''
-  event.target.value = ''
 }
 
 function removeImage(fileId) {
@@ -254,7 +288,7 @@ async function addNewSchedule(schedule) {
 }
 
 async function submitForm() {
-  if (uploading.value || submitting.value) return
+  if (uploading.value || submitting.value || cropperOpen.value) return
   errorMessage.value = ''; successMessage.value = ''; submitting.value = true
   try {
     await productsApi.update(productId, {
@@ -332,7 +366,7 @@ async function submitForm() {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                   <p class="text-sm text-base-content/50">클릭해서 이미지 파일을 선택해 주세요</p>
-                  <p class="text-xs text-base-content/30 mt-1">JPG, PNG, WEBP</p>
+                  <p class="text-xs text-base-content/30 mt-1">JPG, PNG, WEBP · 파일당 최대 10MB</p>
                 </div>
                 <input ref="fileInput" type="file" accept="image/*" multiple class="hidden" @change="handleFileSelect" />
 
@@ -366,7 +400,7 @@ async function submitForm() {
 
               <div class="flex gap-3 pt-2">
                 <RouterLink to="/seller/products" class="btn btn-outline flex-1">취소</RouterLink>
-                <button type="button" :disabled="submitting || uploading" class="btn btn-primary flex-1" @click="submitForm">
+                <button type="button" :disabled="submitting || uploading || cropperOpen" class="btn btn-primary flex-1" @click="submitForm">
                   <span v-if="submitting" class="loading loading-spinner loading-xs"></span>
                   {{ submitting ? '저장 중...' : '저장하기' }}
                 </button>
@@ -452,5 +486,11 @@ async function submitForm() {
         </div>
       </template>
     </div>
+    <ImageAdjustModal
+      :open="cropperOpen"
+      :files="cropperFiles"
+      @cancel="handleCropCancel"
+      @confirm="handleCropConfirm"
+    />
   </div>
 </template>
