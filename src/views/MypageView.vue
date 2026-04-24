@@ -204,7 +204,7 @@ function hasRefundInfoError(orderId) { return Boolean(orderId && refundInfoError
           <h1 class="text-3xl lg:text-4xl font-black text-base-content mb-2">{{ userInfo.name }}님, 안녕하세요!</h1>
           <p class="text-base-content/40 font-bold text-lg">{{ userInfo.email }}</p>
           <div class="flex flex-wrap justify-center md:justify-start gap-2 mt-4">
-            <span class="badge bg-base-300/50 border-none font-black text-xs py-3 px-4 rounded-xl">{{ userInfo.role === 'SELLER' ? '🏢 판매자' : '👤 수강생' }}</span>
+            <span class="badge bg-base-300/50 border-none font-black text-xs py-3 px-4 rounded-xl">{{ userInfo.role === 'ADMIN' ? '🛡️ 관리자' : userInfo.role === 'SELLER' ? '🏢 판매자' : '👤 수강생' }}</span>
             <span v-if="auth.isSeller" class="badge bg-primary/10 text-primary border-none font-black text-xs py-3 px-4 rounded-xl">Premium Partner</span>
           </div>
         </div>

@@ -127,10 +127,12 @@ onMounted(async () => {
   }
   await Promise.all([fetchProducts(), fetchRecommendations()])
   startBannerAuto()
+  window.addEventListener('scroll', onScroll, { passive: true })
 })
 
 onUnmounted(() => {
   clearInterval(bannerTimer)
+  window.removeEventListener('scroll', onScroll)
 })
 
 function handleSearch() {
@@ -161,6 +163,11 @@ async function logout() {
 
 function formatPrice(price) {
   return Number(price).toLocaleString('ko-KR')
+}
+
+const scrolled = ref(false)
+function onScroll() {
+  scrolled.value = window.scrollY > 300
 }
 
 const banners = [
@@ -238,7 +245,7 @@ function onBannerLeave(el, done) {
         <template v-if="auth.isLoggedIn">
           <div class="hidden lg:flex gap-2">
             <RouterLink v-if="auth.isAdmin" to="/admin" class="btn btn-ghost btn-sm rounded-full">관리자</RouterLink>
-            <RouterLink v-if="auth.isSeller" to="/seller/products" class="btn btn-ghost btn-sm rounded-full">상품 관리</RouterLink>
+            <RouterLink v-if="auth.isSeller || auth.isAdmin" to="/seller/products" class="btn btn-ghost btn-sm rounded-full">상품 관리</RouterLink>
             <RouterLink v-if="auth.isSeller" to="/seller/settlements" class="btn btn-ghost btn-sm rounded-full">정산</RouterLink>
           </div>
           <div class="dropdown dropdown-end">
@@ -295,7 +302,7 @@ function onBannerLeave(el, done) {
         @before-leave="onBannerBeforeLeave"
         @leave="onBannerLeave"
       >
-        <div v-if="!searchQuery">
+        <div v-if="!searchQuery && !scrolled">
           <div class="mb-4">
             <h2 class="text-xl font-black text-base-content">🔥 잡아 클래스 소식</h2>
           </div>
