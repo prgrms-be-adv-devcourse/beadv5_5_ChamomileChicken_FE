@@ -5,7 +5,9 @@ import { useAuthStore } from '@/stores/auth'
 import { productsApi } from '@/api/products'
 import { filesApi } from '@/api/files'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import ImageAdjustModal from '@/components/ImageAdjustModal.vue'
 import { loadDaumPostcode, loadKakaoMaps } from '@/utils/loadKakao'
+import { validateImageFiles } from '@/utils/imageUpload'
 
 const DT_PENDING = 'application/x-jabaclass-pending-index'
 const DT_UPLOADED = 'application/x-jabaclass-uploaded-index'
@@ -38,6 +40,8 @@ const submitting = ref(false)
 const uploadedFileIds = ref([])
 const previews = ref([])
 const pendingItems = ref([])
+const cropperOpen = ref(false)
+const cropperFiles = ref([])
 
 onMounted(async () => {
   if (!auth.user) await auth.fetchUser()
@@ -78,13 +82,32 @@ function readAsDataURL(file) {
 async function handleFileSelect(event) {
   const files = Array.from(event.target.files ?? [])
   const remaining = 10 - uploadedFileIds.value.length - pendingItems.value.length
-  const toQueue = files.slice(0, remaining)
-  if (toQueue.length === 0) { uploadStatus.value = '이미지는 최대 10개까지 등록할 수 있습니다.'; event.target.value = ''; return }
-  for (const file of toQueue) {
-    pendingItems.value.push({ id: createPendingId(), file, dataUrl: await readAsDataURL(file) })
+  const candidates = files.slice(0, remaining)
+  if (candidates.length === 0) { uploadStatus.value = '이미지는 최대 10개까지 등록할 수 있습니다.'; event.target.value = ''; return }
+  const { validFiles, errors } = validateImageFiles(candidates)
+  if (!validFiles.length) {
+    uploadStatus.value = errors[0] || '업로드 가능한 이미지가 없습니다.'
+    event.target.value = ''
+    return
   }
-  uploadStatus.value = pendingItems.value.length ? `선택 ${pendingItems.value.length}개 · 순서를 마운 후 아래 "이 순서로 업로드"를 눌러주세요. (첫 번째가 대표 썸네일)` : ''
+  cropperFiles.value = validFiles
+  cropperOpen.value = true
+  uploadStatus.value = errors.length ? errors[0] : ''
   event.target.value = ''
+}
+
+function handleCropCancel() {
+  cropperOpen.value = false
+  cropperFiles.value = []
+}
+
+function handleCropConfirm(processedItems) {
+  for (const item of processedItems) {
+    pendingItems.value.push({ id: createPendingId(), file: item.file, dataUrl: item.dataUrl })
+  }
+  cropperOpen.value = false
+  cropperFiles.value = []
+  uploadStatus.value = pendingItems.value.length ? `선택 ${pendingItems.value.length}개 · 순서를 맞춘 뒤 "이 순서로 업로드"를 눌러주세요. (첫 번째가 대표 썸네일)` : ''
 }
 
 function removePending(id) {
@@ -128,6 +151,14 @@ async function uploadPendingQueue() {
       const item = queue[i]
       uploadStatus.value = `이미지 업로드 중... (${i + 1}/${queue.length})`
       try {
+        const { validFiles, errors } = validateImageFiles([item.file])
+        if (!validFiles.length) {
+          pendingItems.value.push(item)
+          for (let j = i + 1; j < queue.length; j += 1) pendingItems.value.push(queue[j])
+          uploadStatus.value = errors[0] || `"${item.file.name}"은 업로드할 수 없습니다.`
+          uploading.value = false
+          return
+        }
         const uploadRes = await filesApi.uploadRequest(item.file.name)
         const { fileId, uploadUrl } = uploadRes.data.data
         await fetch(uploadUrl, { method: 'PUT', body: await item.file.arrayBuffer() })
@@ -182,7 +213,7 @@ async function openAddressSearch() {
 }
 
 async function submitForm() {
-  if (uploading.value || submitting.value || pendingItems.value.length) return
+  if (uploading.value || submitting.value || pendingItems.value.length || cropperOpen.value) return
   errorMessage.value = ''
   submitting.value = true
   try {
@@ -258,9 +289,9 @@ async function submitForm() {
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 <p class="text-sm text-base-content/50">클릭해서 이미지 파일을 선택해 주세요</p>
-                <p class="text-xs text-base-content/30 mt-1">JPG, PNG, WEBP</p>
+                <p class="text-xs text-base-content/30 mt-1">JPG, JPEG, PNG · 파일당 최대 5MB · 최대 10장 · 총 50MB 이하</p>
               </div>
-              <input ref="fileInput" type="file" accept="image/*" multiple class="hidden" @change="handleFileSelect" />
+              <input ref="fileInput" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" multiple class="hidden" @change="handleFileSelect" />
 
               <div v-if="pendingItems.length" class="mt-3 rounded-xl border border-warning/40 bg-warning/5 p-3">
                 <p class="text-xs text-warning font-medium mb-2">업로드 대기 · 드래그로 순서 변경 (맨 앞이 대표 썸네일)</p>
@@ -275,7 +306,7 @@ async function submitForm() {
                     </div>
                   </div>
                 </div>
-                <button type="button" :disabled="uploading" class="btn btn-warning btn-sm w-full mt-3" @click="uploadPendingQueue">
+                <button type="button" :disabled="uploading || cropperOpen" class="btn btn-warning btn-sm w-full mt-3" @click="uploadPendingQueue">
                   <span v-if="uploading" class="loading loading-spinner loading-xs"></span>
                   {{ uploading ? '업로드 중...' : '이 순서로 업로드' }}
                 </button>
@@ -318,7 +349,7 @@ async function submitForm() {
 
             <div class="flex gap-3 pt-2">
               <RouterLink to="/seller/products" class="btn btn-outline flex-1">취소</RouterLink>
-              <button type="button" :disabled="submitting || uploading || pendingItems.length > 0" class="btn btn-primary flex-1" @click="submitForm">
+              <button type="button" :disabled="submitting || uploading || pendingItems.length > 0 || cropperOpen" class="btn btn-primary flex-1" @click="submitForm">
                 <span v-if="submitting" class="loading loading-spinner loading-xs"></span>
                 {{ submitting ? '등록 중...' : '등록하기' }}
               </button>
@@ -327,5 +358,11 @@ async function submitForm() {
         </div>
       </div>
     </div>
+    <ImageAdjustModal
+      :open="cropperOpen"
+      :files="cropperFiles"
+      @cancel="handleCropCancel"
+      @confirm="handleCropConfirm"
+    />
   </div>
 </template>

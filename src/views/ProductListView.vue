@@ -1,10 +1,11 @@
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { productsApi } from '@/api/products'
 import { authApi } from '@/api/auth'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import ProductCard from '@/components/ProductCard.vue'
 import { resolveImageUrl } from '@/utils/imageUrl'
 import { extractApiData } from '@/utils/api'
 
@@ -19,7 +20,7 @@ const recommendationError = ref('')
 const recommendationLoading = ref(false)
 const searchQuery = ref('')
 const currentPage = ref(0)
-const pageSize = ref(9)
+const pageSize = ref(16)
 const totalPage = ref(0)
 const totalCount = ref(0)
 
@@ -159,7 +160,6 @@ const scrolled = ref(false)
 function onScroll() {
   scrolled.value = window.scrollY > 300
 }
-
 const banners = [
   { src: '/winter-banner.png', alt: '겨울 특별 클래스' },
   { src: '/ilon-banner.png', alt: '추천 클래스' },
@@ -221,9 +221,9 @@ function onBannerLeave(el, done) {
 </script>
 
 <template>
-  <div class="bg-base-200 min-h-screen pb-20">
+  <div class="bg-base-100 min-h-screen pb-20">
     <!-- Navbar -->
-    <div class="navbar bg-base-100/80 backdrop-blur-md sticky top-0 z-30 px-4 lg:px-10 border-b border-base-300/50">
+    <div class="navbar sticky top-0 z-30 border-b border-base-300/40 bg-base-100 px-4 lg:px-10">
       <div class="flex-1">
         <RouterLink to="/products" class="hover:opacity-80 transition-opacity">
           <img src="/logo.svg" class="h-12 lg:h-14" alt="Jaba 클래스" />
@@ -339,7 +339,7 @@ function onBannerLeave(el, done) {
             </div>
           </div>
 
-          <hr class="border-base-300 mb-12" />
+          <hr class="mb-12 border-base-300/50" />
         </div>
       </transition>
 
@@ -442,41 +442,14 @@ function onBannerLeave(el, done) {
         </div>
 
         <!-- Product Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-          <RouterLink v-for="product in products" :key="product.id" 
-            :to="`/products/${product.id}`" 
-            class="card bg-base-100 hover:shadow-2xl hover:-translate-y-1 active:scale-[0.98] transition-all duration-300 overflow-hidden border border-base-300/30 group">
-            <figure class="aspect-[4/3] bg-base-200 relative overflow-hidden">
-              <img v-if="product.thumbnailPath" :src="resolveImageUrl(product.thumbnailPath)" alt="상품 이미지" 
-                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-              <div v-else class="w-full h-full flex items-center justify-center bg-primary/5">
-                <span class="text-5xl opacity-20">🎨</span>
-              </div>
-              <div class="absolute top-4 left-4">
-                <span class="badge bg-white/90 backdrop-blur border-none text-primary font-black shadow-sm py-3 px-4 rounded-xl">OPEN</span>
-              </div>
-            </figure>
-            <div class="card-body p-6">
-              <div class="flex items-center gap-2 mb-2">
-                <div class="w-6 h-6 rounded-full bg-base-200 flex items-center justify-center text-[10px]">🏢</div>
-                <p class="text-xs text-base-content/50 font-bold uppercase tracking-wider">{{ product.sellerName }}</p>
-              </div>
-              <h2 class="card-title text-lg font-extrabold line-clamp-2 leading-tight mb-2 group-hover:text-primary transition-colors">
-                {{ product.title }}
-              </h2>
-              <div class="mt-auto flex items-end justify-between">
-                <div>
-                  <p class="text-2xl font-black text-base-content tracking-tight">
-                    <span class="text-sm font-bold mr-0.5">₩</span>{{ formatPrice(product.price) }}
-                  </p>
-                </div>
-                <div class="w-10 h-10 rounded-2xl bg-base-200 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                  </svg>
-                </div>
-              </div>
-            </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-5 gap-y-8 mb-16">
+          <RouterLink
+            v-for="product in products"
+            :key="product.id"
+            :to="`/products/${product.id}`"
+            class="block"
+          >
+            <ProductCard :product="product" />
           </RouterLink>
         </div>
 
