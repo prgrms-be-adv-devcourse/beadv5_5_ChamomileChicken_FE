@@ -19,6 +19,14 @@ api.interceptors.request.use((config) => {
 })
 
 let isRefreshing = false
+let pendingQueue = []
+
+function processQueue(error, token = null) {
+  pendingQueue.forEach(({ resolve, reject }) => {
+    error ? reject(error) : resolve(token)
+  })
+  pendingQueue = []
+}
 
 api.interceptors.response.use(
   (res) => res,
@@ -26,36 +34,55 @@ api.interceptors.response.use(
     const auth = useAuthStore()
     const originalRequest = error.config
 
-    // 401/403이고, 토큰이 있고, 아직 재시도 안 한 경우에만 reissue 시도
+    // 403은 RBAC 실패이므로 reissue 불필요, 401만 처리
     // _skipReissue 플래그가 있으면 건너뜀 (fetchUser 등 실패해도 괜찮은 요청)
     if (
-      [401, 403].includes(error.response?.status) &&
+      error.response?.status === 401 &&
       auth.accessToken &&
       !originalRequest._retry &&
-      !isRefreshing &&
       !originalRequest._skipReissue
     ) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          pendingQueue.push({ resolve, reject })
+        }).then((token) => {
+          originalRequest.headers.Authorization = `Bearer ${token}`
+          return api(originalRequest)
+        })
+      }
+
       originalRequest._retry = true
       isRefreshing = true
+
       try {
         const res = await axios.post(`${apiBaseUrl}/auth/reissue`, {}, { withCredentials: true })
-        const newToken = res.data?.data?.accessToken ?? res.data?.accessToken ?? res.data?.data?.access_token ?? res.data?.access_token
+        const newToken =
+          res.data?.data?.accessToken ?? res.data?.accessToken ??
+          res.data?.data?.access_token ?? res.data?.access_token
+
         if (newToken) {
           auth.setToken(newToken)
           originalRequest.headers.Authorization = `Bearer ${newToken}`
-          isRefreshing = false
-          return axios(originalRequest)
+          processQueue(null, newToken)
+          return api(originalRequest)
         }
-      } catch {
+
+        // 토큰이 응답에 없는 경우
+        const tokenMissingError = new Error('토큰 재발급 응답에 토큰이 없습니다.')
+        processQueue(tokenMissingError)
         auth.clearToken()
-        isRefreshing = false
         router.push({ name: 'Login' })
+      } catch (err) {
+        processQueue(err)
+        auth.clearToken()
+        router.push({ name: 'Login' })
+      } finally {
+        isRefreshing = false
       }
-      isRefreshing = false
     }
 
     return Promise.reject(error)
-  }
+  },
 )
 
 export default api
