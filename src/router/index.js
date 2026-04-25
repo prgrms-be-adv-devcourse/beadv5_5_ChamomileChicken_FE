@@ -4,7 +4,8 @@ import { useAuthStore } from '@/stores/auth'
 const routes = [
   {
     path: '/',
-    redirect: '/products',
+    name: 'Landing',
+    component: () => import('@/views/LandingView.vue'),
   },
   {
     path: '/login',
@@ -107,16 +108,45 @@ const routes = [
     component: () => import('@/views/FaqView.vue'),
   },
   {
+    path: '/about',
+    name: 'About',
+    component: () => import('@/views/AboutView.vue'),
+  },
+  {
+    path: '/terms',
+    name: 'Terms',
+    component: () => import('@/views/TermsView.vue'),
+  },
+  {
+    path: '/privacy',
+    name: 'Privacy',
+    component: () => import('@/views/PrivacyView.vue'),
+  },
+  {
+    path: '/refund-policy',
+    name: 'RefundPolicy',
+    component: () => import('@/views/RefundPolicyView.vue'),
+  },
+  {
     path: '/admin',
     name: 'AdminDashboard',
     component: () => import('@/views/admin/AdminDashboardView.vue'),
     meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: () => import('@/views/NotFoundView.vue'),
   },
 ]
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) return savedPosition
+    return { top: 0, behavior: 'smooth' }
+  },
 })
 
 router.beforeEach((to) => {
