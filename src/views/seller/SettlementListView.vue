@@ -76,7 +76,7 @@ function formatDateTime(value) { return value ? String(value).substring(0, 16).r
     <div class="navbar bg-base-100 shadow-sm sticky top-0 z-30 px-4 lg:px-8">
       <div class="flex-1">
         <RouterLink to="/products">
-          <svg width="220" height="50" viewBox="0 0 220 50" xmlns="http://www.w3.org/2000/svg" class="h-20 w-auto">
+          <svg width="220" height="50" viewBox="0 0 220 50" xmlns="http://www.w3.org/2000/svg" class="h-10 sm:h-14 w-auto">
             <g transform="translate(10, 5)">
               <rect x="5" y="8" width="24" height="24" rx="8" fill="#E8F0FE" transform="rotate(-12 17 20)" />
               <rect x="12" y="12" width="24" height="24" rx="8" fill="#487BE5" transform="rotate(8 24 24)" />
@@ -89,8 +89,8 @@ function formatDateTime(value) { return value ? String(value).substring(0, 16).r
       </div>
       <div class="flex-none flex items-center gap-2">
         <ThemeToggle />
-        <RouterLink to="/seller/products" class="btn btn-ghost btn-sm">상품 관리</RouterLink>
-        <RouterLink to="/mypage" class="btn btn-ghost btn-sm">마이페이지</RouterLink>
+        <RouterLink to="/seller/products" class="btn btn-ghost btn-sm hidden sm:flex">상품 관리</RouterLink>
+        <RouterLink to="/mypage" class="btn btn-ghost btn-sm hidden sm:flex">마이페이지</RouterLink>
         <button @click="logout" class="btn btn-ghost btn-sm">로그아웃</button>
       </div>
     </div>
@@ -127,7 +127,7 @@ function formatDateTime(value) { return value ? String(value).substring(0, 16).r
                   <p v-if="settlement.failReason" class="text-xs text-error mt-1">{{ settlement.failReason }}</p>
                 </div>
 
-                <div class="stats stats-horizontal bg-base-200 rounded-xl shadow-none">
+                <div class="stats stats-horizontal bg-base-200 rounded-xl shadow-none overflow-x-auto">
                   <div class="stat py-2 px-4">
                     <div class="stat-title text-xs">기준 금액</div>
                     <div class="stat-value text-sm font-bold">₩{{ formatMoney(settlement.originalAmount) }}</div>
