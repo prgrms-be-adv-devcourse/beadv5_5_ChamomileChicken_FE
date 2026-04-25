@@ -307,12 +307,7 @@ function onBannerLeave(el, done) {
         <RouterLink to="/about" class="btn btn-ghost btn-sm rounded-full font-bold hidden sm:flex">About Us</RouterLink>
         <RouterLink to="/faq" class="btn btn-ghost btn-sm rounded-full font-bold hidden sm:flex">자주 묻는 질문</RouterLink>
         <template v-if="auth.isLoggedIn">
-          <div class="hidden lg:flex gap-2">
-            <RouterLink v-if="auth.isAdmin" to="/admin" class="btn btn-ghost btn-sm rounded-full">관리자</RouterLink>
-            <RouterLink v-if="auth.isSeller || auth.isAdmin" to="/seller/products" class="btn btn-ghost btn-sm rounded-full">상품 관리</RouterLink>
-            <RouterLink v-if="auth.isSeller" to="/seller/settlements" class="btn btn-ghost btn-sm rounded-full">정산</RouterLink>
-          </div>
-          <div class="dropdown dropdown-end">
+<div class="dropdown dropdown-end">
             <label tabindex="0" class="btn btn-ghost btn-circle avatar online">
               <div class="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold text-sm" style="display:flex;align-items:center;justify-content:center;line-height:1">
                 {{ auth.user?.name?.charAt(0) || 'U' }}
@@ -320,6 +315,12 @@ function onBannerLeave(el, done) {
             </label>
             <ul tabindex="0" class="mt-3 z-[1] p-2 shadow-xl menu menu-sm dropdown-content bg-base-100 rounded-2xl w-52 border border-base-300/50">
               <li><RouterLink to="/mypage" class="py-3">마이페이지</RouterLink></li>
+              <template v-if="auth.isAdmin || auth.isSeller">
+                <li class="menu-title px-3 pt-2 pb-1 text-[10px] uppercase tracking-widest text-base-content/30">관리</li>
+                <li v-if="auth.isAdmin"><RouterLink to="/admin" class="py-3">관리자 대시보드</RouterLink></li>
+                <li v-if="auth.isSeller || auth.isAdmin"><RouterLink to="/seller/products" class="py-3">상품 관리</RouterLink></li>
+                <li v-if="auth.isSeller"><RouterLink to="/seller/settlements" class="py-3">정산</RouterLink></li>
+              </template>
               <li><button @click="logout" class="py-3 text-error">로그아웃</button></li>
             </ul>
           </div>

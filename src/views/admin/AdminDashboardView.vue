@@ -14,7 +14,7 @@ const orders = ref([])
 const settlements = ref([])
 const reviews = ref([])
 const loading = ref(false)
-const sidebarOpen = ref(true)
+const sidebarOpen = ref(window.innerWidth >= 768)
 
 // 필터 상태
 const userFilter = ref({ role: '', name: '', email: '' })
