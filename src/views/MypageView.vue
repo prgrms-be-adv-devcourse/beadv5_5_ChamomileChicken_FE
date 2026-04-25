@@ -209,8 +209,8 @@ function hasRefundInfoError(orderId) { return Boolean(orderId && refundInfoError
           {{ userInfo.name?.charAt(0) }}
         </div>
         <div class="text-center md:text-left flex-1">
-          <h1 class="text-3xl lg:text-4xl font-black text-base-content mb-2">{{ userInfo.name }}님, 안녕하세요!</h1>
-          <p class="text-base-content/40 font-bold text-lg">{{ userInfo.email }}</p>
+          <h1 class="text-xl sm:text-3xl lg:text-4xl font-black text-base-content mb-2">{{ userInfo.name }}님, 안녕하세요!</h1>
+          <p class="text-base-content/40 font-bold text-sm sm:text-lg">{{ userInfo.email }}</p>
           <div class="flex flex-wrap justify-center md:justify-start gap-2 mt-4">
             <span class="badge bg-base-300/50 border-none font-black text-xs py-3 px-4 rounded-xl">{{ userInfo.role === 'ADMIN' ? '🛡️ 관리자' : userInfo.role === 'SELLER' ? '🏢 판매자' : '👤 수강생' }}</span>
             <span v-if="auth.isSeller" class="badge bg-primary/10 text-primary border-none font-black text-xs py-3 px-4 rounded-xl">Premium Partner</span>
@@ -240,11 +240,11 @@ function hasRefundInfoError(orderId) { return Boolean(orderId && refundInfoError
       </div>
 
       <!-- Tabs -->
-      <div class="tabs tabs-boxed bg-base-100 mb-8 p-1.5 rounded-[24px] shadow-sm border border-base-300/20 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
+      <div class="flex bg-base-100 mb-8 p-1.5 rounded-[24px] shadow-sm border border-base-300/20 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200 overflow-x-auto gap-1">
         <button v-for="tab in tabs" :key="tab.key"
           @click="switchTab(tab.key)"
           :class="activeTab === tab.key ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-base-content/50 hover:bg-base-200'"
-          class="tab flex-1 h-12 rounded-[18px] font-black text-sm transition-all duration-300">
+          class="flex-shrink-0 h-11 px-4 rounded-[18px] font-black text-sm transition-all duration-300 whitespace-nowrap">
           {{ tab.label }}
         </button>
       </div>
@@ -284,11 +284,11 @@ function hasRefundInfoError(orderId) { return Boolean(orderId && refundInfoError
                 <div class="space-y-6">
                   <div class="form-control">
                     <label class="label pt-0"><span class="label-text text-xs font-black text-base-content/40">이름</span></label>
-                    <input v-model="editName" type="text" class="input input-lg bg-base-200 border-none rounded-2xl font-black focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all h-14" />
+                    <input v-model="editName" type="text" class="input bg-base-200 border-none rounded-2xl font-black focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all h-12 sm:h-14 text-sm sm:text-base" />
                   </div>
                   <div class="form-control">
                     <label class="label pt-0"><span class="label-text text-xs font-black text-base-content/40">전화번호</span></label>
-                    <input v-model="editPhone" type="tel" class="input input-lg bg-base-200 border-none rounded-2xl font-black focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all h-14" />
+                    <input v-model="editPhone" type="tel" class="input bg-base-200 border-none rounded-2xl font-black focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all h-12 sm:h-14 text-sm sm:text-base" />
                   </div>
                   <div v-if="editError" class="text-error font-black text-sm">{{ editError }}</div>
                   <div class="flex gap-4 mt-4">

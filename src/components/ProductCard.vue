@@ -51,7 +51,7 @@ function formatPrice(price) {
       </div>
 
       <div class="flex items-center justify-between border-t border-base-300/50 pt-2.5">
-        <span class="text-xs font-semibold text-base-content/60">인당</span>
+        <span class="text-xs font-semibold text-base-content/60">1인 기준</span>
         <span class="text-[15px] font-black text-base-content">
           {{ formatPrice(product.price) }}<span class="ml-0.5 text-xs font-bold">원~</span>
         </span>

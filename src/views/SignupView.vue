@@ -98,12 +98,12 @@ async function register() {
 </script>
 
 <template>
-  <div class="hero min-h-screen bg-base-200">
+  <div class="min-h-screen bg-base-200 flex items-center justify-center overflow-y-auto py-8">
     <ThemeToggle class="fixed top-6 right-6 z-10" />
 
-    <div class="hero-content w-full max-w-[480px] p-4">
+    <div class="w-full max-w-[480px] px-4">
       <div class="card w-full bg-base-100 shadow-sm border border-base-300/30 rounded-[40px] overflow-hidden animate-in fade-in zoom-in duration-500">
-        <div class="card-body p-8 lg:p-12">
+        <div class="card-body p-6 sm:p-8 lg:p-12">
           <div class="text-center mb-6">
             <RouterLink to="/products">
               <svg width="220" height="50" viewBox="0 0 220 50" xmlns="http://www.w3.org/2000/svg" class="h-12 lg:h-14 w-auto mx-auto mb-6 hover:scale-105 transition-transform">
@@ -136,11 +136,11 @@ async function register() {
             <!-- 1단계: 이메일 + 중복 확인 -->
             <div class="form-control">
               <label class="label pt-0"><span class="label-text text-xs font-black text-base-content/40 ml-1">이메일</span></label>
-              <div class="flex gap-2">
+              <div class="flex flex-col sm:flex-row gap-2">
                 <input v-model="email" @input="onEmailInput" type="email" placeholder="email@example.com" :disabled="emailDisabled"
-                  class="input input-lg bg-base-200 border-none focus:bg-white focus:ring-2 focus:ring-primary/20 rounded-2xl font-bold transition-all h-14 flex-1 disabled:opacity-50" />
+                  class="input bg-base-200 border-none focus:bg-white focus:ring-2 focus:ring-primary/20 rounded-2xl font-bold transition-all h-12 sm:h-14 text-sm sm:text-base w-full disabled:opacity-50" />
                 <button @click="checkEmail" :disabled="emailCheckLoading || emailDisabled"
-                  class="btn rounded-2xl px-6 h-14 border-none shadow-sm transition-all active:scale-95 text-sm font-black shrink-0"
+                  class="btn rounded-2xl px-6 h-12 sm:h-14 border-none shadow-sm transition-all active:scale-95 text-sm font-black w-full sm:w-auto shrink-0"
                   :class="emailChecked ? 'bg-success/10 text-success hover:bg-success/20' : 'bg-base-content text-base-100'">
                   <span v-if="emailCheckLoading" class="loading loading-spinner loading-sm"></span>
                   <span v-else class="font-black">{{ emailChecked ? '확인됨' : '중복확인' }}</span>
@@ -152,7 +152,7 @@ async function register() {
             <transition name="fade">
               <div v-if="emailChecked && !emailDisabled">
                 <button @click="sendCode" :disabled="sendBtnLoading"
-                  class="btn btn-primary btn-lg w-full rounded-2xl font-black shadow-xl shadow-primary/20 h-14 border-none">
+                  class="btn btn-primary w-full rounded-2xl font-black shadow-xl shadow-primary/20 h-12 sm:h-14 border-none">
                   {{ sendBtnText }}
                 </button>
               </div>
@@ -162,10 +162,10 @@ async function register() {
             <transition name="slide-up">
               <div v-if="showCodeSection" class="form-control">
                 <label class="label pt-0"><span class="label-text text-xs font-black text-base-content/40 ml-1">인증번호</span></label>
-                <div class="flex gap-2">
+                <div class="flex flex-col sm:flex-row gap-2">
                   <input v-model="code" type="text" placeholder="6자리 숫자" maxlength="6"
-                    class="input input-lg bg-base-200 border-none focus:bg-white focus:ring-2 focus:ring-primary/20 rounded-2xl font-black text-center tracking-[0.5em] transition-all h-14 flex-1" />
-                  <button @click="verifyCode" class="btn bg-base-content text-base-100 rounded-2xl px-6 h-14 border-none font-black transition-all active:scale-95">
+                    class="input bg-base-200 border-none focus:bg-white focus:ring-2 focus:ring-primary/20 rounded-2xl font-black text-center tracking-[0.5em] transition-all h-12 sm:h-14 w-full" />
+                  <button @click="verifyCode" class="btn bg-base-content text-base-100 rounded-2xl px-6 h-12 sm:h-14 border-none font-black transition-all active:scale-95 w-full sm:w-auto shrink-0">
                     인증하기
                   </button>
                 </div>
@@ -178,26 +178,26 @@ async function register() {
                 <div class="form-control">
                   <label class="label pt-0"><span class="label-text text-xs font-black text-base-content/40 ml-1">이름</span></label>
                   <input v-model="name" type="text" placeholder="홍길동" 
-                    class="input input-lg bg-base-200 border-none focus:bg-white focus:ring-2 focus:ring-primary/20 rounded-2xl font-bold transition-all h-14" />
+                    class="input bg-base-200 border-none focus:bg-white focus:ring-2 focus:ring-primary/20 rounded-2xl font-bold transition-all h-12 sm:h-14 text-sm sm:text-base" />
                 </div>
                 <div class="form-control">
                   <label class="label pt-0"><span class="label-text text-xs font-black text-base-content/40 ml-1">비밀번호</span></label>
                   <input v-model="password" type="password" placeholder="8자 이상 입력" 
-                    class="input input-lg bg-base-200 border-none focus:bg-white focus:ring-2 focus:ring-primary/20 rounded-2xl font-bold transition-all h-14" />
+                    class="input bg-base-200 border-none focus:bg-white focus:ring-2 focus:ring-primary/20 rounded-2xl font-bold transition-all h-12 sm:h-14 text-sm sm:text-base" />
                 </div>
                 <div class="form-control">
                   <label class="label pt-0"><span class="label-text text-xs font-black text-base-content/40 ml-1">전화번호</span></label>
                   <input v-model="phone" type="tel" placeholder="01012345678" 
-                    class="input input-lg bg-base-200 border-none focus:bg-white focus:ring-2 focus:ring-primary/20 rounded-2xl font-bold transition-all h-14" />
+                    class="input bg-base-200 border-none focus:bg-white focus:ring-2 focus:ring-primary/20 rounded-2xl font-bold transition-all h-12 sm:h-14 text-sm sm:text-base" />
                 </div>
-                <button @click="register" class="btn btn-primary btn-lg w-full mt-4 rounded-2xl font-black shadow-xl shadow-primary/20 h-14 border-none">
+                <button @click="register" class="btn btn-primary w-full mt-4 rounded-2xl font-black shadow-xl shadow-primary/20 h-12 sm:h-14 border-none">
                   가입 완료하기
                 </button>
               </div>
             </transition>
           </div>
 
-          <div class="mt-10 pt-8 border-t border-base-300/30 text-center">
+          <div class="mt-6 sm:mt-10 pt-6 sm:pt-8 border-t border-base-300/30 text-center">
             <p class="text-sm font-bold text-base-content/40">
               이미 계정이 있으신가요?
               <RouterLink to="/login" class="text-primary hover:underline ml-2">로그인</RouterLink>
