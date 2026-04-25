@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { productsApi } from '@/api/products'
@@ -8,6 +8,14 @@ import ThemeToggle from '@/components/ThemeToggle.vue'
 import ProductCard from '@/components/ProductCard.vue'
 import { resolveImageUrl } from '@/utils/imageUrl'
 import { extractApiData } from '@/utils/api'
+import { useRecentProducts } from '@/composables/useRecentProducts'
+import { useRecentSearches } from '@/composables/useRecentSearches'
+
+const recentProducts = useRecentProducts()
+const recentSearches = useRecentSearches()
+const recentProductList = ref([])
+const recentSearchList = ref([])
+const showSearchDropdown = ref(false)
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -119,6 +127,8 @@ onMounted(async () => {
   await Promise.all([fetchProducts(), fetchRecommendations()])
   startBannerAuto()
   window.addEventListener('scroll', onScroll, { passive: true })
+  recentProductList.value = recentProducts.getAll()
+  recentSearchList.value = recentSearches.getAll()
 })
 
 onUnmounted(() => {
@@ -127,8 +137,25 @@ onUnmounted(() => {
 })
 
 function handleSearch() {
+  if (searchQuery.value.trim()) {
+    recentSearches.add(searchQuery.value)
+    recentSearchList.value = recentSearches.getAll()
+  }
+  showSearchDropdown.value = false
   currentPage.value = 0
   fetchProducts()
+}
+
+function selectRecentSearch(query) {
+  searchQuery.value = query
+  showSearchDropdown.value = false
+  currentPage.value = 0
+  fetchProducts()
+}
+
+function removeRecentSearch(query) {
+  recentSearches.remove(query)
+  recentSearchList.value = recentSearches.getAll()
 }
 
 let searchDebounceTimer = null
@@ -277,6 +304,7 @@ function onBannerLeave(el, done) {
       </div>
       <div class="flex-none flex items-center gap-4">
         <ThemeToggle />
+        <RouterLink to="/about" class="btn btn-ghost btn-sm rounded-full font-bold hidden sm:flex">About Us</RouterLink>
         <RouterLink to="/faq" class="btn btn-ghost btn-sm rounded-full font-bold hidden sm:flex">자주 묻는 질문</RouterLink>
         <template v-if="auth.isLoggedIn">
           <div class="hidden lg:flex gap-2">
@@ -304,12 +332,12 @@ function onBannerLeave(el, done) {
 
     <div class="max-w-5xl mx-auto px-4 py-8">
       <!-- Welcome Header -->
-      <div class="mb-10 flex items-center justify-between gap-4">
-        <div class="text-center lg:text-left">
-          <h1 class="text-3xl lg:text-4xl font-extrabold tracking-tight text-base-content mb-2">
+      <div class="mb-6 sm:mb-10 flex items-center justify-between gap-4">
+        <div class="text-left">
+          <h1 class="text-xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-base-content mb-1 sm:mb-2">
             {{ greeting.text(auth.isLoggedIn ? auth.user?.name : null) }} {{ greeting.emoji }}
           </h1>
-          <p class="text-base-content/60 text-lg">{{ subtitle }}</p>
+          <p class="text-base-content/60 text-sm sm:text-lg">{{ subtitle }}</p>
         </div>
         <button
           v-if="auth.isLoggedIn"
@@ -325,22 +353,74 @@ function onBannerLeave(el, done) {
       </div>
 
       <!-- Search Bar -->
-      <div class="mb-12">
+      <div class="mb-8 sm:mb-12 relative">
         <form @submit.prevent="handleSearch" class="relative group">
           <input
             :value="searchQuery"
             @input="onSearchInput"
+            @focus="showSearchDropdown = recentSearchList.length > 0"
+            @blur="setTimeout(() => showSearchDropdown = false, 150)"
             type="text"
-            placeholder="어떤 클래스를 찾으시나요? (예: 요가, 베이킹)"
-            class="input w-full h-16 pl-14 pr-32 rounded-3xl bg-base-100 border border-base-content/10 shadow-sm focus:shadow-md focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all text-lg"
+            placeholder="어떤 클래스를 찾으시나요?"
+            class="input w-full h-12 sm:h-16 pl-11 sm:pl-14 pr-20 sm:pr-32 rounded-3xl bg-base-100 border border-base-content/10 shadow-sm focus:shadow-md focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all text-sm sm:text-lg"
           />
-          <svg class="w-6 h-6 absolute left-5 top-1/2 -translate-y-1/2 text-base-content/30 group-focus-within:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 sm:w-6 sm:h-6 absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 text-base-content/30 group-focus-within:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <button type="submit" class="btn btn-primary absolute right-2 top-2 bottom-2 rounded-2xl px-8 shadow-lg shadow-primary/20">
+          <button type="submit" class="btn btn-primary absolute right-2 top-2 bottom-2 rounded-2xl px-4 sm:px-8 text-sm shadow-lg shadow-primary/20">
             검색
           </button>
         </form>
+
+        <!-- 최근 검색어 드롭다운 -->
+        <div v-if="showSearchDropdown && recentSearchList.length"
+          class="absolute top-full left-0 right-0 mt-2 bg-base-100 rounded-2xl border border-base-300/30 shadow-xl z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+          <div class="flex items-center justify-between px-4 py-3 border-b border-base-300/20">
+            <span class="text-xs font-black text-base-content/30 uppercase tracking-widest">최근 검색어</span>
+            <button @click="recentSearches.clear(); recentSearchList = []" class="text-xs font-black text-base-content/30 hover:text-error transition-colors">전체 삭제</button>
+          </div>
+          <ul>
+            <li v-for="query in recentSearchList" :key="query"
+              class="flex items-center justify-between px-4 py-3 hover:bg-base-200/50 transition-colors">
+              <button class="flex items-center gap-3 flex-1 text-left" @click="selectRecentSearch(query)">
+                <svg class="w-4 h-4 text-base-content/20 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="text-sm font-bold text-base-content">{{ query }}</span>
+              </button>
+              <button @click="removeRecentSearch(query)" class="text-base-content/20 hover:text-error transition-colors p-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 최근 본 클래스 -->
+      <div v-if="!searchQuery && recentProductList.length" class="mb-10">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-base font-black text-base-content">최근 본 클래스</h2>
+          <button @click="recentProducts.clear(); recentProductList = []" class="text-xs font-black text-base-content/30 hover:text-error transition-colors">전체 삭제</button>
+        </div>
+        <div class="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+          <RouterLink
+            v-for="item in recentProductList"
+            :key="item.id"
+            :to="`/products/${item.id}`"
+            class="shrink-0 w-32 card bg-base-100 border border-base-300/20 rounded-[20px] overflow-hidden hover:shadow-md hover:-translate-y-1 transition-all group"
+          >
+            <div class="aspect-square bg-base-200 overflow-hidden">
+              <img v-if="item.thumbnailPath" :src="resolveImageUrl(item.thumbnailPath)" alt="" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+              <div v-else class="w-full h-full flex items-center justify-center text-3xl opacity-20">🎨</div>
+            </div>
+            <div class="p-3">
+              <p class="text-xs font-black line-clamp-2 leading-tight mb-1">{{ item.title }}</p>
+              <p v-if="item.price !== null" class="text-xs font-black text-primary">₩{{ Number(item.price).toLocaleString('ko-KR') }}</p>
+            </div>
+          </RouterLink>
+        </div>
       </div>
 
       <!-- Banner Carousel (검색 중엔 슬라이드 업) -->
@@ -491,7 +571,7 @@ function onBannerLeave(el, done) {
         <p class="text-base-content/40 font-medium">좋은 클래스를 찾고 있어요...</p>
       </div>
 
-      <div v-else-if="!errorMessage && products.length > 0">
+<div v-else-if="!errorMessage && products.length > 0">
         <div class="flex items-center justify-between mb-8">
           <p class="text-lg font-bold text-base-content">
             <span v-if="searchQuery">"{{ searchQuery }}" 결과</span>
@@ -561,6 +641,12 @@ function onBannerLeave(el, done) {
         <p class="text-base-content/50 text-sm mb-1 font-medium">© 2026 잡아클래스. All rights reserved.</p>
         <p class="text-base-content/30 text-xs mb-1">함께 배우고 성장하는 클래스 플랫폼</p>
         <p class="text-base-content/30 text-xs mb-4">대표자 : ChamomileChicken</p>
+        <div class="flex flex-wrap justify-center gap-4 mb-4">
+          <RouterLink to="/faq" class="text-xs font-bold text-base-content/30 hover:text-base-content/60 transition-colors">자주 묻는 질문</RouterLink>
+          <RouterLink to="/terms" class="text-xs font-bold text-base-content/30 hover:text-base-content/60 transition-colors">이용약관</RouterLink>
+          <RouterLink to="/privacy" class="text-xs font-bold text-base-content/30 hover:text-base-content/60 transition-colors">개인정보처리방침</RouterLink>
+          <RouterLink to="/refund-policy" class="text-xs font-bold text-base-content/30 hover:text-base-content/60 transition-colors">환불 정책</RouterLink>
+        </div>
         <div class="flex items-center justify-center gap-1">
           <span class="text-base-content/20 text-xs">All systems operational</span>
           <svg class="w-3 h-3 text-success" fill="currentColor" viewBox="0 0 20 20">

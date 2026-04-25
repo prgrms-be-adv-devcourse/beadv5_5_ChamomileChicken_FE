@@ -50,13 +50,13 @@ function loginWithSocial(provider) {
 </script>
 
 <template>
-  <div class="hero min-h-screen bg-base-200">
+  <div class="min-h-screen bg-base-200 flex items-center justify-center overflow-y-auto py-8">
     <ThemeToggle class="fixed top-6 right-6 z-10" />
 
-    <div class="hero-content w-full max-w-[440px] p-4">
+    <div class="w-full max-w-[440px] px-4">
       <div class="card w-full bg-base-100 shadow-sm border border-base-300/30 rounded-[40px] overflow-hidden animate-in fade-in zoom-in duration-500">
-        <div class="card-body p-8 lg:p-12">
-          <div class="text-center mb-10">
+        <div class="card-body p-6 sm:p-8 lg:p-12">
+          <div class="text-center mb-6 sm:mb-10">
             <RouterLink to="/products">
               <svg width="220" height="50" viewBox="0 0 220 50" xmlns="http://www.w3.org/2000/svg" class="h-14 lg:h-16 w-auto mx-auto mb-6 hover:scale-105 transition-transform">
                 <g transform="translate(10, 5)">
@@ -89,22 +89,22 @@ function loginWithSocial(provider) {
               <input v-model="email" type="text" placeholder="이메일" @input="emailError = ''"
                 :key="emailError ? 'email-err' : 'email'"
                 :class="emailError ? 'ring-2 ring-error/40 bg-error/5 animate-shake' : 'bg-base-200 focus:bg-white focus:ring-2 focus:ring-primary/20'"
-                class="input input-lg border-none rounded-2xl font-bold transition-all h-14" />
+                class="input border-none rounded-2xl font-bold transition-all h-12 sm:h-14 text-sm sm:text-base" />
               <p v-if="emailError" class="text-error text-xs font-bold mt-2 ml-1 animate-shake">{{ emailError }}</p>
             </div>
             <div class="form-control">
               <input v-model="password" type="password" placeholder="비밀번호" @input="passwordError = ''"
                 :key="passwordError ? 'pw-err' : 'pw'"
                 :class="passwordError ? 'ring-2 ring-error/40 bg-error/5 animate-shake' : 'bg-base-200 focus:bg-white focus:ring-2 focus:ring-primary/20'"
-                class="input input-lg border-none rounded-2xl font-bold transition-all h-14" />
+                class="input border-none rounded-2xl font-bold transition-all h-12 sm:h-14 text-sm sm:text-base" />
               <p v-if="passwordError" class="text-error text-xs font-bold mt-2 ml-1 animate-shake">{{ passwordError }}</p>
             </div>
-            <button type="submit" class="btn btn-primary btn-lg w-full mt-2 rounded-2xl font-black shadow-xl shadow-primary/20 h-14 border-none">
+            <button type="submit" class="btn btn-primary w-full mt-2 rounded-2xl font-black shadow-xl shadow-primary/20 h-12 sm:h-14 border-none">
               로그인
             </button>
           </form>
 
-          <div class="divider text-[10px] font-black text-base-content/20 my-8 uppercase tracking-[0.2em]">Social Login</div>
+          <div class="divider text-[10px] font-black text-base-content/20 my-4 sm:my-8 uppercase tracking-[0.2em]">Social Login</div>
 
           <div class="flex flex-col gap-3">
             <button @click="loginWithSocial('google')" class="btn bg-white hover:bg-base-200 text-base-content border border-base-300/50 rounded-2xl font-black h-11 text-sm transition-all gap-2">
@@ -130,7 +130,7 @@ function loginWithSocial(provider) {
             </button>
           </div>
 
-          <div class="mt-10 pt-8 border-t border-base-300/30 text-center">
+          <div class="mt-6 sm:mt-10 pt-6 sm:pt-8 border-t border-base-300/30 text-center">
             <p class="text-sm font-bold text-base-content/40">
               아직 계정이 없으신가요?
               <RouterLink to="/signup" class="text-primary hover:underline ml-2">회원가입</RouterLink>
@@ -140,4 +140,5 @@ function loginWithSocial(provider) {
       </div>
     </div>
   </div>
+
 </template>

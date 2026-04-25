@@ -26,10 +26,10 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="hero min-h-screen bg-base-200">
-    <div class="hero-content w-full max-w-[480px] p-4">
+  <div class="min-h-screen bg-base-200 flex items-center justify-center overflow-y-auto py-8">
+    <div class="w-full max-w-[480px] px-4">
       <div class="card w-full bg-base-100 shadow-sm border border-base-300/30 rounded-[40px] overflow-hidden animate-in fade-in zoom-in duration-500">
-        <div class="card-body p-8 lg:p-12 items-center text-center">
+        <div class="card-body p-6 sm:p-8 lg:p-12 items-center text-center">
 
           <template v-if="confirmed">
             <div class="w-24 h-24 rounded-full bg-success/10 flex items-center justify-center mb-8 animate-bounce">

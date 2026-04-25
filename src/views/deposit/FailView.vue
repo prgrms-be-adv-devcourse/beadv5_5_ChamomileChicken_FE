@@ -6,8 +6,8 @@ const errorMessage = route.query.message || '예치금 충전에 실패했습니
 </script>
 
 <template>
-  <div class="hero min-h-screen bg-base-200">
-    <div class="hero-content w-full max-w-md">
+  <div class="min-h-screen bg-base-200 flex items-center justify-center overflow-y-auto py-8">
+    <div class="w-full max-w-md px-4">
       <div class="card w-full shadow-2xl bg-base-100 text-center">
         <div class="card-body items-center">
           <div class="w-20 h-20 rounded-full bg-error/10 flex items-center justify-center mb-2">
