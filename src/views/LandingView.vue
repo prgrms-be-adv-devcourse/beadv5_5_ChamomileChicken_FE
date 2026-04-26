@@ -11,7 +11,7 @@ const auth = useAuthStore()
     <div class="navbar sticky top-0 z-30 border-b border-base-300/40 bg-base-100/80 backdrop-blur-md px-4 lg:px-10">
       <div class="flex-1">
         <RouterLink to="/products">
-          <svg width="220" height="50" viewBox="0 0 220 50" xmlns="http://www.w3.org/2000/svg" class="h-12 w-auto">
+          <svg width="220" height="50" viewBox="0 0 220 50" xmlns="http://www.w3.org/2000/svg" class="h-8 sm:h-12 w-auto">
             <g transform="translate(10, 5)">
               <rect x="5" y="8" width="24" height="24" rx="8" fill="#E8F0FE" transform="rotate(-12 17 20)" />
               <rect x="12" y="12" width="24" height="24" rx="8" fill="#487BE5" transform="rotate(8 24 24)" />

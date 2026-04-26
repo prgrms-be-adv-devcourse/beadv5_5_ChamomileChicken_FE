@@ -246,7 +246,7 @@ async function submitForm() {
     <div class="navbar bg-base-100 shadow-sm sticky top-0 z-30 px-4">
       <div class="flex-1">
         <RouterLink to="/seller/products">
-          <svg width="220" height="50" viewBox="0 0 220 50" xmlns="http://www.w3.org/2000/svg" class="h-20 w-auto">
+          <svg width="220" height="50" viewBox="0 0 220 50" xmlns="http://www.w3.org/2000/svg" class="h-10 sm:h-14 w-auto">
             <g transform="translate(10, 5)">
               <rect x="5" y="8" width="24" height="24" rx="8" fill="#E8F0FE" transform="rotate(-12 17 20)" />
               <rect x="12" y="12" width="24" height="24" rx="8" fill="#487BE5" transform="rotate(8 24 24)" />

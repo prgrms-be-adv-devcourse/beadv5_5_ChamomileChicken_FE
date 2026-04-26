@@ -257,11 +257,24 @@ async function shareProduct() {
 }
 
 async function copyLink() {
+  const url = window.location.href
   try {
-    await navigator.clipboard.writeText(window.location.href)
+    await navigator.clipboard.writeText(url)
     toast.success('링크가 복사되었어요!')
   } catch {
-    toast.error('링크 복사에 실패했어요.')
+    try {
+      const el = document.createElement('textarea')
+      el.value = url
+      el.style.cssText = 'position:fixed;opacity:0'
+      document.body.appendChild(el)
+      el.focus()
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
+      toast.success('링크가 복사되었어요!')
+    } catch {
+      toast.error('링크 복사에 실패했어요.')
+    }
   }
 }
 </script>
@@ -482,7 +495,7 @@ async function copyLink() {
                     <span class="text-[10px] font-bold text-base-content/30">{{ formatDate(review.createdAt) }}</span>
                   </div>
                 </div>
-                <button v-if="review.userId === auth.user?.userId" @click="deleteReview(review.id)" 
+                <button v-if="auth.isLoggedIn && review.userId === auth.user?.userId" @click="deleteReview(review.id)"
                   class="btn btn-ghost btn-xs text-error/50 hover:text-error hover:bg-error/5 rounded-lg">삭제</button>
               </div>
               <p class="text-base font-medium text-base-content/80 leading-relaxed px-1">{{ review.content }}</p>
