@@ -1,6 +1,6 @@
-export function resolveImageUrl(path) {
-  const S3_BASE_URL = 'https://team04-buket.s3.ap-northeast-2.amazonaws.com'
+const S3_BASE_URL = window.__APP_CONFIG__?.VITE_S3_BASE_URL || import.meta.env.VITE_S3_BASE_URL
 
+export function resolveImageUrl(path) {
   if (!path) return ''
 
   if (/^https?:\/\//i.test(path) || path.startsWith('data:') || path.startsWith('blob:')) {
