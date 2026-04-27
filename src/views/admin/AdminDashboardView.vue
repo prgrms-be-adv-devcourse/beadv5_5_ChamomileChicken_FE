@@ -14,7 +14,7 @@ const orders = ref([])
 const settlements = ref([])
 const reviews = ref([])
 const loading = ref(false)
-const sidebarOpen = ref(true)
+const sidebarOpen = ref(window.innerWidth >= 768)
 
 // 필터 상태
 const userFilter = ref({ role: '', name: '', email: '' })
@@ -333,7 +333,15 @@ const tabTitles = {
       <!-- Logo area -->
       <div class="flex items-center gap-3 px-4 py-5 border-b border-base-300/40 h-16">
         <RouterLink to="/products" class="shrink-0">
-          <img src="/logo.svg" class="h-8" alt="Jaba 클래스" />
+          <svg width="220" height="50" viewBox="0 0 220 50" xmlns="http://www.w3.org/2000/svg" class="h-8 w-auto">
+            <g transform="translate(10, 5)">
+              <rect x="5" y="8" width="24" height="24" rx="8" fill="#E8F0FE" transform="rotate(-12 17 20)" />
+              <rect x="12" y="12" width="24" height="24" rx="8" fill="#487BE5" transform="rotate(8 24 24)" />
+              <path d="M 38 2 Q 40 8 46 10 Q 40 12 38 18 Q 36 12 30 10 Q 36 8 38 2 Z" fill="#FFC83D" />
+            </g>
+            <text x="65" y="34" font-family="'Pretendard', -apple-system, sans-serif" font-weight="800" font-size="26" fill="currentColor" letter-spacing="-0.5">Jaba</text>
+            <text x="125" y="34" font-family="'Pretendard', -apple-system, sans-serif" font-weight="700" font-size="22" fill="#487BE5" letter-spacing="-0.5">클래스</text>
+          </svg>
         </RouterLink>
         <span v-if="sidebarOpen" class="text-xs font-black text-base-content/30 uppercase tracking-widest whitespace-nowrap">Admin</span>
       </div>

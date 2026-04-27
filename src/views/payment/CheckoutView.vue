@@ -74,13 +74,13 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="hero min-h-screen bg-base-200">
+  <div class="min-h-screen bg-base-200 flex items-center justify-center overflow-y-auto py-8">
     <ThemeToggle class="fixed top-6 right-6 z-10" />
 
-    <div class="hero-content w-full max-w-[480px] p-4">
+    <div class="w-full max-w-[480px] px-4">
       <div class="card w-full bg-base-100 shadow-sm border border-base-300/30 rounded-[40px] overflow-hidden animate-in fade-in zoom-in duration-500">
-        <div class="card-body p-8 lg:p-12">
-          <div class="flex items-center gap-4 mb-10">
+        <div class="card-body p-6 sm:p-8 lg:p-12">
+          <div class="flex items-center gap-4 mb-6 sm:mb-10">
             <button @click="$router.back()" class="btn btn-ghost btn-circle bg-base-200/50">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
@@ -93,7 +93,7 @@ onMounted(async () => {
             {{ error }}
           </div>
 
-          <div class="space-y-1 mb-10">
+          <div class="space-y-1 mb-6 sm:mb-10">
             <div class="flex flex-col gap-1 py-4 border-b border-base-300/30">
               <span class="text-xs font-black text-base-content/30 uppercase">상품 정보</span>
               <span class="text-lg font-black leading-tight">{{ productTitle }}</span>

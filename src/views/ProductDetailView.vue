@@ -9,6 +9,11 @@ import ThemeToggle from '@/components/ThemeToggle.vue'
 import { loadKakaoMaps } from '@/utils/loadKakao'
 import { extractApiData, extractApiMessage } from '@/utils/api'
 import { resolveImageUrl } from '@/utils/imageUrl'
+import { useRecentProducts } from '@/composables/useRecentProducts'
+import { useToast } from '@/composables/useToast'
+
+const { add: addRecent } = useRecentProducts()
+const toast = useToast()
 
 const route = useRoute()
 const router = useRouter()
@@ -105,6 +110,7 @@ onMounted(async () => {
     ])
     product.value = productRes.data?.data ?? productRes.data
     schedules.value = scheduleRes.data?.data ?? scheduleRes.data ?? []
+    if (product.value) addRecent(product.value)
   } catch (e) {
     pageError.value = e.response?.data?.message || '상품 정보를 불러오는 데 실패했습니다.'
     pageLoading.value = false
@@ -237,6 +243,40 @@ async function logout() {
   auth.clearToken()
   router.push('/login')
 }
+
+async function shareProduct() {
+  const url = window.location.href
+  const title = product.value?.title ?? '잡아클래스'
+  if (navigator.share) {
+    try {
+      await navigator.share({ title, url })
+    } catch { /* 사용자 취소 */ }
+  } else {
+    await copyLink()
+  }
+}
+
+async function copyLink() {
+  const url = window.location.href
+  try {
+    await navigator.clipboard.writeText(url)
+    toast.success('링크가 복사되었어요!')
+  } catch {
+    try {
+      const el = document.createElement('textarea')
+      el.value = url
+      el.style.cssText = 'position:fixed;opacity:0'
+      document.body.appendChild(el)
+      el.focus()
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
+      toast.success('링크가 복사되었어요!')
+    } catch {
+      toast.error('링크 복사에 실패했어요.')
+    }
+  }
+}
 </script>
 
 <template>
@@ -288,16 +328,16 @@ async function logout() {
       <template v-else-if="product">
         <!-- Main Product Card -->
         <div class="card bg-base-100 shadow-sm border border-base-300/30 rounded-[32px] overflow-hidden mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div class="card-body p-8 lg:p-12">
+          <div class="card-body p-5 sm:p-8 lg:p-12">
             <div class="flex items-center gap-2 mb-4">
               <span class="px-3 py-1 bg-primary/10 text-primary text-xs font-black rounded-lg uppercase">Special Class</span>
               <span class="text-sm font-bold text-base-content/40">판매자: {{ product.sellerName }}</span>
             </div>
-            <h1 class="text-3xl lg:text-5xl font-black text-base-content leading-tight mb-6">
+            <h1 class="text-2xl sm:text-3xl lg:text-5xl font-black text-base-content leading-tight mb-4 sm:mb-6">
               {{ product.title }}
             </h1>
-            <div class="flex items-baseline gap-2 mb-8">
-              <span class="text-4xl font-black text-primary tracking-tighter">₩{{ formatPrice(product.price) }}</span>
+            <div class="flex items-baseline gap-2 mb-6 sm:mb-8">
+              <span class="text-2xl sm:text-4xl font-black text-primary tracking-tighter">₩{{ formatPrice(product.price) }}</span>
               <span class="text-base-content/30 font-bold">/ 1인</span>
             </div>
             
@@ -455,7 +495,7 @@ async function logout() {
                     <span class="text-[10px] font-bold text-base-content/30">{{ formatDate(review.createdAt) }}</span>
                   </div>
                 </div>
-                <button v-if="review.userId === auth.user?.userId" @click="deleteReview(review.id)" 
+                <button v-if="auth.isLoggedIn && review.userId === auth.user?.userId" @click="deleteReview(review.id)"
                   class="btn btn-ghost btn-xs text-error/50 hover:text-error hover:bg-error/5 rounded-lg">삭제</button>
               </div>
               <p class="text-base font-medium text-base-content/80 leading-relaxed px-1">{{ review.content }}</p>
@@ -477,12 +517,17 @@ async function logout() {
           <p class="text-xs font-bold text-base-content/40 mb-1">인기 급상승 클래스 🔥</p>
           <p class="text-lg font-black truncate max-w-[300px]">{{ product.title }}</p>
         </div>
-        <div class="flex flex-1 md:flex-none items-center gap-4">
+        <div class="flex flex-1 md:flex-none items-center gap-3">
           <div class="text-right hidden sm:block">
             <p class="text-xs font-bold text-base-content/40">1인 기준</p>
             <p class="text-xl font-black text-primary">₩{{ formatPrice(product.price) }}</p>
           </div>
-          <a href="#schedules" class="btn btn-primary btn-lg flex-1 md:w-64 rounded-2xl shadow-xl shadow-primary/30 text-lg font-black tracking-tight">
+          <button @click="shareProduct" class="btn btn-ghost bg-base-200 rounded-2xl px-4 shrink-0" title="공유하기">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            </svg>
+          </button>
+          <a href="#schedules" class="btn btn-primary btn-lg flex-1 md:w-64 rounded-2xl shadow-xl shadow-primary/30 text-base font-black tracking-tight">
             일정 확인하고 예약하기
           </a>
         </div>
@@ -496,11 +541,11 @@ async function logout() {
       </button>
       
       <div class="relative w-full max-w-5xl aspect-video flex items-center justify-center" @click.stop>
-        <button v-if="lightboxImageCount > 1" type="button" class="btn btn-circle btn-ghost absolute -left-16 top-1/2 -translate-y-1/2 z-10 text-white/50 hover:text-white transition-all scale-150" aria-label="이전 이미지" @click.stop="lightboxPrev">
-          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
+        <button v-if="lightboxImageCount > 1" type="button" class="btn btn-circle btn-ghost absolute left-2 sm:-left-16 top-1/2 -translate-y-1/2 z-10 text-white/70 hover:text-white transition-all sm:scale-150 bg-black/30 sm:bg-transparent" aria-label="이전 이미지" @click.stop="lightboxPrev">
+          <svg class="w-6 h-6 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
         </button>
-        <button v-if="lightboxImageCount > 1" type="button" class="btn btn-circle btn-ghost absolute -right-16 top-1/2 -translate-y-1/2 z-10 text-white/50 hover:text-white transition-all scale-150" aria-label="다음 이미지" @click.stop="lightboxNext">
-          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
+        <button v-if="lightboxImageCount > 1" type="button" class="btn btn-circle btn-ghost absolute right-2 sm:-right-16 top-1/2 -translate-y-1/2 z-10 text-white/70 hover:text-white transition-all sm:scale-150 bg-black/30 sm:bg-transparent" aria-label="다음 이미지" @click.stop="lightboxNext">
+          <svg class="w-6 h-6 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
         </button>
         
         <img :src="lightboxImg" alt="확대 이미지" class="max-w-full max-h-[85vh] object-contain rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in zoom-in duration-300" />
@@ -513,7 +558,7 @@ async function logout() {
 
     <!-- 예약 모달 -->
     <div v-if="showModal" class="modal modal-open backdrop-blur-md">
-      <div class="modal-box rounded-[40px] p-8 lg:p-10 shadow-2xl border border-base-300/30">
+      <div class="modal-box rounded-[32px] sm:rounded-[40px] p-5 sm:p-8 lg:p-10 shadow-2xl border border-base-300/30">
         <div class="flex items-center justify-between mb-8">
           <h3 class="font-black text-2xl">예약 정보를 확인하세요</h3>
           <button @click="closeModal" class="btn btn-sm btn-circle btn-ghost">✕</button>

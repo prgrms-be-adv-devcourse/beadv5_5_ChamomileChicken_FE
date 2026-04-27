@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      port: 3000,
+      port: Number(env.PORT ?? 3000),
       proxy: {
         '/api': {
           target: env.API_TARGET ?? 'http://localhost:8080',
