@@ -628,47 +628,36 @@ function onBannerLeave(el, done) {
           <span class="font-semibold">{{ recommendationError }}</span>
         </div>
 
-        <div v-else-if="recommendedProducts.length" class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div v-else-if="recommendedProducts.length" class="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory">
           <component
             v-for="item in recommendedProducts"
             :key="item.id ?? `${item.title}-${item.reason}`"
             :is="item.id ? 'RouterLink' : 'div'"
             v-bind="item.id ? { to: `/products/${item.id}` } : {}"
-            class="card bg-base-100 border border-base-300/30 rounded-[28px] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all overflow-hidden group"
+            class="card bg-base-100 border border-base-300/30 rounded-[28px] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all overflow-hidden group shrink-0 w-64 sm:w-72 snap-start"
           >
-            <div class="flex h-full">
-              <div class="w-28 sm:w-36 bg-base-200 overflow-hidden shrink-0">
-                <img
-                  v-if="item.thumbnailPath"
-                  :src="resolveImageUrl(item.thumbnailPath)"
-                  alt="추천 클래스 이미지"
-                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div v-else class="w-full h-full min-h-[132px] flex items-center justify-center bg-primary/5 text-4xl opacity-60">✨</div>
+            <div class="p-5 flex flex-col h-full">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="badge bg-primary/10 text-primary border-none font-black">For You</span>
+                <span v-if="item.sellerName" class="text-xs text-base-content/40 font-bold truncate">{{ item.sellerName }}</span>
               </div>
-              <div class="flex-1 p-5 flex flex-col">
-                <div class="flex items-center gap-2 mb-2">
-                  <span class="badge bg-primary/10 text-primary border-none font-black">For You</span>
-                  <span v-if="item.sellerName" class="text-xs text-base-content/40 font-bold">{{ item.sellerName }}</span>
-                </div>
-                <h3 class="text-lg font-extrabold text-base-content leading-tight mb-3 line-clamp-2 group-hover:text-primary transition-colors">
-                  {{ item.title }}
-                </h3>
-                <p class="text-sm text-base-content/60 font-medium leading-relaxed line-clamp-3 mb-4">
-                  {{ item.reason }}
+              <h3 class="text-base font-extrabold text-base-content leading-tight mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+                {{ item.title }}
+              </h3>
+              <p class="text-sm text-base-content/60 font-medium leading-relaxed line-clamp-3 mb-4 flex-1">
+                {{ item.reason }}
+              </p>
+              <div class="flex items-end justify-between">
+                <p v-if="item.price !== null" class="text-lg font-black text-base-content">
+                  <span class="text-sm font-bold mr-0.5">₩</span>{{ formatPrice(item.price) }}
                 </p>
-                <div class="mt-auto flex items-end justify-between">
-                  <p v-if="item.price !== null" class="text-xl font-black text-base-content">
-                    <span class="text-sm font-bold mr-0.5">₩</span>{{ formatPrice(item.price) }}
-                  </p>
-                  <p v-else class="text-sm text-base-content/30 font-bold">
-                    {{ item.id ? '상세 페이지에서 금액 확인' : '추천 사유 기반 결과' }}
-                  </p>
-                  <div class="w-10 h-10 rounded-2xl bg-base-200 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
-                  </div>
+                <p v-else class="text-xs text-base-content/30 font-bold">
+                  {{ item.id ? '상세 페이지에서 금액 확인' : '추천 사유 기반 결과' }}
+                </p>
+                <div class="w-9 h-9 rounded-2xl bg-base-200 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all shrink-0">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
                 </div>
               </div>
             </div>
