@@ -17,11 +17,30 @@ const loading = ref(true)
 const errorMessage = ref('')
 const recommendationError = ref('')
 const recommendationLoading = ref(false)
+const recommendationStatus = ref('')
+const recommendationPolling = ref(false)
 const searchQuery = ref('')
 const currentPage = ref(0)
 const pageSize = ref(9)
 const totalPage = ref(0)
 const totalCount = ref(0)
+
+const RECOMMENDATION_PENDING_STATUS = 'PENDING'
+const RECOMMENDATION_FAILED_STATUS = 'FAILED'
+const RECOMMENDATION_POLL_INTERVAL_MS = 1500
+const RECOMMENDATION_POLL_RETRY_COUNT = 5
+
+const recommendationStatusMessage = computed(() => {
+  if (recommendationStatus.value === RECOMMENDATION_PENDING_STATUS) {
+    return '추천 이유를 다듬는 중이에요. 잠시 후 자동으로 업데이트됩니다.'
+  }
+  if (recommendationStatus.value === RECOMMENDATION_FAILED_STATUS) {
+    return 'AI 추천 이유 생성이 지연되어 기본 추천 이유를 먼저 보여드리고 있어요.'
+  }
+  return ''
+})
+
+let recommendationRequestToken = 0
 
 async function fetchProducts() {
   loading.value = true
@@ -60,42 +79,112 @@ function normalizeRecommendationPayload(payload) {
   return []
 }
 
+function normalizeRecommendationResponse(payload) {
+  const source = payload?.recommendations ? payload : payload?.data ?? payload
+  return {
+    status: source?.status ?? '',
+    recommendations: normalizeRecommendationPayload(source),
+  }
+}
+
 function getRecommendationProductId(item) {
   return item?.productId ?? item?.productid ?? item?.product_id ?? item?.id ?? null
 }
 
+function mapRecommendationItems(items) {
+  return items.map((item) => {
+    const id = getRecommendationProductId(item)
+    return {
+      id,
+      title: item?.title ?? '',
+      reason: item.reason,
+      price: item?.price ?? null,
+      sellerName: item?.sellerName ?? '',
+      thumbnailPath: item?.thumbnailPath ?? '',
+    }
+  })
+}
+
+function applyRecommendationResult(result) {
+  recommendationStatus.value = result.status
+  recommendedProducts.value = mapRecommendationItems(result.recommendations)
+}
+
+function waitForRecommendationPolling() {
+  return new Promise((resolve) => {
+    setTimeout(resolve, RECOMMENDATION_POLL_INTERVAL_MS)
+  })
+}
+
+async function requestRecommendations() {
+  const res = await productsApi.recommendations()
+  return normalizeRecommendationResponse(extractApiData(res))
+}
+
+async function pollRecommendations(requestToken) {
+  recommendationPolling.value = true
+
+  try {
+    for (let attempt = 0; attempt < RECOMMENDATION_POLL_RETRY_COUNT; attempt += 1) {
+      await waitForRecommendationPolling()
+      if (requestToken !== recommendationRequestToken) return
+
+      const result = await requestRecommendations()
+      if (requestToken !== recommendationRequestToken) return
+
+      applyRecommendationResult(result)
+      if (result.status !== RECOMMENDATION_PENDING_STATUS) {
+        return
+      }
+    }
+  } catch (e) {
+    console.warn('[recommendations] polling failed', {
+      message: e.response?.data?.message || e.message,
+    })
+  } finally {
+    if (requestToken === recommendationRequestToken) {
+      recommendationPolling.value = false
+    }
+  }
+}
+
 async function fetchRecommendations() {
+  const requestToken = ++recommendationRequestToken
+
   if (!auth.isLoggedIn) {
     recommendedProducts.value = []
     recommendationError.value = ''
+    recommendationStatus.value = ''
+    recommendationPolling.value = false
     return
   }
 
   recommendationLoading.value = true
   recommendationError.value = ''
+  recommendationStatus.value = ''
+  recommendationPolling.value = false
 
   try {
-    const res = await productsApi.recommendations()
-    const recommendationItems = normalizeRecommendationPayload(extractApiData(res))
+    const result = await requestRecommendations()
+    if (requestToken !== recommendationRequestToken) return
 
-    if (!recommendationItems.length) {
+    applyRecommendationResult(result)
+
+    if (!result.recommendations.length) {
       recommendedProducts.value = []
       return
     }
 
-    recommendedProducts.value = recommendationItems.map((item) => {
-      const id = getRecommendationProductId(item)
-      return {
-        id,
-        title: item?.title ?? '',
-        reason: item.reason,
-        price: item?.price ?? null,
-        sellerName: item?.sellerName ?? '',
-        thumbnailPath: item?.thumbnailPath ?? '',
-      }
-    })
+    if (result.status === RECOMMENDATION_PENDING_STATUS) {
+      recommendationLoading.value = false
+      await pollRecommendations(requestToken)
+      return
+    }
   } catch (e) {
+    if (requestToken !== recommendationRequestToken) return
+
     recommendedProducts.value = []
+    recommendationStatus.value = ''
     const status = e.response?.status
     if ([401, 403, 404, 500].includes(status)) {
       recommendationError.value = ''
@@ -107,7 +196,9 @@ async function fetchRecommendations() {
     }
     recommendationError.value = e.response?.data?.message || '추천 클래스를 불러오지 못했습니다.'
   } finally {
-    recommendationLoading.value = false
+    if (requestToken === recommendationRequestToken) {
+      recommendationLoading.value = false
+    }
   }
 }
 
@@ -121,6 +212,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  recommendationRequestToken += 1
   clearInterval(bannerTimer)
   window.removeEventListener('scroll', onScroll)
 })
@@ -354,6 +446,12 @@ function onBannerLeave(el, done) {
           <div>
             <h2 class="text-xl font-black text-base-content">맞춤 추천 클래스</h2>
             <p class="text-sm text-base-content/50 font-medium">최근 활동을 바탕으로 골라봤어요.</p>
+            <p v-if="recommendationStatusMessage" class="mt-1 text-xs font-medium text-base-content/45">
+              {{ recommendationStatusMessage }}
+              <span v-if="recommendationPolling" class="ml-1 inline-flex align-middle">
+                <span class="loading loading-dots loading-xs"></span>
+              </span>
+            </p>
           </div>
           <span v-if="recommendedProducts.length" class="badge badge-primary badge-lg border-none">{{ recommendedProducts.length }}개</span>
         </div>
