@@ -100,16 +100,36 @@ function getRecommendationProductId(item) {
   return item?.productId ?? item?.productid ?? item?.product_id ?? item?.id ?? null
 }
 
+function getRecommendationThumbnailPath(item) {
+  return item?.thumbnailPath
+    ?? item?.thumbnail_path
+    ?? item?.thumbnailUrl
+    ?? item?.thumbnail_url
+    ?? item?.imagePath
+    ?? item?.image_path
+    ?? item?.imageUrl
+    ?? item?.image_url
+    ?? item?.product?.thumbnailPath
+    ?? item?.product?.thumbnail_path
+    ?? item?.product?.thumbnailUrl
+    ?? item?.product?.thumbnail_url
+    ?? item?.product?.imagePath
+    ?? item?.product?.image_path
+    ?? item?.product?.imageUrl
+    ?? item?.product?.image_url
+    ?? ''
+}
+
 function mapRecommendationItems(items) {
   return items.map((item) => {
     const id = getRecommendationProductId(item)
     return {
       id,
-      title: item?.title ?? '',
-      reason: item.reason,
-      price: item?.price ?? null,
-      sellerName: item?.sellerName ?? '',
-      thumbnailPath: item?.thumbnailPath ?? '',
+      title: item?.title ?? item?.product?.title ?? '',
+      reason: item?.reason ?? item?.recommendationReason ?? item?.recommendation_reason ?? '',
+      price: item?.price ?? item?.product?.price ?? null,
+      sellerName: item?.sellerName ?? item?.seller_name ?? item?.product?.sellerName ?? item?.product?.seller_name ?? '',
+      thumbnailPath: getRecommendationThumbnailPath(item),
     }
   })
 }
