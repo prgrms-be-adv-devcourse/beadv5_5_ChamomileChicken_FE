@@ -44,7 +44,7 @@ const recommendationStatusMessage = computed(() => {
     return '추천 이유를 다듬는 중이에요. 잠시 후 자동으로 업데이트됩니다.'
   }
   if (recommendationStatus.value === RECOMMENDATION_FAILED_STATUS) {
-    return 'AI 추천 이유 생성이 지연되어 기본 추천 이유를 먼저 보여드리고 있어요.'
+    return '추천 클래스 반영이 늦어질 수도 있어요'
   }
   return ''
 })
@@ -480,7 +480,7 @@ function onBannerLeave(el, done) {
           <svg class="w-5 h-5 sm:w-6 sm:h-6 absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 text-base-content/30 group-focus-within:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <button type="submit" class="btn btn-primary absolute right-2 top-2 bottom-2 rounded-2xl px-4 sm:px-8 text-sm shadow-lg shadow-primary/20">
+          <button type="submit" class="btn btn-primary absolute right-2 top-1.5 bottom-1.5 sm:top-2 sm:bottom-2 rounded-2xl px-4 sm:px-8 text-sm shadow-lg shadow-primary/20">
             검색
           </button>
         </form>
@@ -604,7 +604,7 @@ function onBannerLeave(el, done) {
       <div v-if="!searchQuery && auth.isLoggedIn" id="recommendations" class="mb-12 scroll-mt-20">
         <div class="flex items-center justify-between mb-4">
           <div>
-            <h2 class="text-xl font-black text-base-content">맞춤 추천 클래스</h2>
+            <h2 class="text-xl font-black text-base-content">AI 기반 맞춤 추천 클래스</h2>
             <p class="text-sm text-base-content/50 font-medium">최근 활동을 바탕으로 골라봤어요.</p>
             <p v-if="recommendationStatusMessage" class="mt-1 text-xs font-medium text-base-content/45">
               {{ recommendationStatusMessage }}
