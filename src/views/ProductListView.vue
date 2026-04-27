@@ -628,7 +628,7 @@ function onBannerLeave(el, done) {
           <span class="font-semibold">{{ recommendationError }}</span>
         </div>
 
-        <div v-else-if="recommendedProducts.length" class="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory">
+        <div v-else-if="recommendedProducts.length" class="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <component
             v-for="item in recommendedProducts"
             :key="item.id ?? `${item.title}-${item.reason}`"
