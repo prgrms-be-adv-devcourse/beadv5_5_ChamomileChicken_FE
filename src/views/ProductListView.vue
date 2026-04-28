@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { productsApi } from '@/api/products'
@@ -237,7 +237,6 @@ onMounted(async () => {
   }
   await Promise.all([fetchProducts(), fetchRecommendations()])
   startBannerAuto()
-  window.addEventListener('scroll', onScroll, { passive: true })
   recentProductList.value = recentProducts.getAll()
   recentSearchList.value = recentSearches.getAll()
 })
@@ -245,7 +244,6 @@ onMounted(async () => {
 onUnmounted(() => {
   recommendationRequestToken += 1
   clearInterval(bannerTimer)
-  window.removeEventListener('scroll', onScroll)
 })
 
 function handleSearch() {
@@ -268,6 +266,11 @@ function selectRecentSearch(query) {
 function removeRecentSearch(query) {
   recentSearches.remove(query)
   recentSearchList.value = recentSearches.getAll()
+}
+
+function removeRecentProduct(id) {
+  recentProducts.remove(id)
+  recentProductList.value = recentProducts.getAll()
 }
 
 let searchDebounceTimer = null
@@ -317,25 +320,17 @@ const subtitles = [
 ]
 const subtitle = ref(subtitles[Math.floor(Math.random() * subtitles.length)])
 
-const scrolled = ref(false)
-const instantCollapse = ref(false)
-function onScroll() {
-  scrolled.value = window.scrollY > 80
-}
-
 function scrollToRecommendations() {
-  instantCollapse.value = true
-  scrolled.value = true
-  nextTick(() => {
-    document.getElementById('recommendations')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    instantCollapse.value = false
-  })
+  document.getElementById('recommendations')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 const banners = [
-  { src: '/winter-banner.png', alt: '겨울 특별 클래스' },
-  { src: '/ilon-banner.png', alt: '추천 클래스' },
-  { src: '/newjeans-banner.png', alt: 'New Jeans 클래스' },
-  { src: '/son-potato-banner.png', alt: '손호준의 감자 클래스' },
+  { src: '/winter.png', alt: '겨울 특별 클래스', title: '겨울 특별 클래스', subtitle: '따뜻한 겨울을 함께할 클래스를 만나보세요' },
+  { src: '/elon.png', alt: '지금 뜨는 클래스', title: '지금 뜨는 클래스', subtitle: '이 시즌 가장 인기 있는 클래스를 확인하세요' },
+  { src: '/newjeans.png', alt: 'New Jeans 클래스', title: 'New Jeans 클래스', subtitle: '트렌디한 감각을 키워볼 수 있는 기회' },
+  { src: '/sonny.png', alt: '손흥민의 축구 클래스', title: '손흥민의 축구 클래스', subtitle: '스타와 함께하는 특별한 원데이 클래스' },
+  { src: '/cristiano.png', alt: '호날두의 피지컬 클래스', title: '호날두의 피지컬 클래스', subtitle: '세계 최고와 함께하는 퍼포먼스 트레이닝' },
+  { src: '/jaeseok.png', alt: '유재석의 예능 클래스', title: '유재석의 예능 클래스', subtitle: '국민 MC에게 배우는 유머와 소통의 기술' },
+  { src: '/roro.png', alt: '로로의 클래스', title: '로로의 스페셜 클래스', subtitle: '특별한 경험을 선사하는 프리미엄 클래스' },
 ]
 const bannerIndex = ref(0)
 let bannerTimer = null
@@ -361,40 +356,6 @@ function restartBannerAuto() {
   startBannerAuto()
 }
 
-function onBannerBeforeEnter(el) {
-  el.style.height = '0'
-  el.style.overflow = 'hidden'
-  el.style.opacity = '0'
-}
-function onBannerEnter(el, done) {
-  const h = el.scrollHeight
-  el.style.transition = 'height 0.4s ease, opacity 0.4s ease'
-  el.style.height = h + 'px'
-  el.style.opacity = '1'
-  el.addEventListener('transitionend', done, { once: true })
-}
-function onBannerAfterEnter(el) {
-  el.style.height = ''
-  el.style.overflow = ''
-  el.style.opacity = ''
-  el.style.transition = ''
-}
-function onBannerBeforeLeave(el) {
-  el.style.height = el.scrollHeight + 'px'
-  el.style.overflow = 'hidden'
-}
-function onBannerLeave(el, done) {
-  if (instantCollapse.value) {
-    el.style.height = '0'
-    el.style.opacity = '0'
-    done()
-    return
-  }
-  el.style.transition = 'height 0.4s ease, opacity 0.4s ease'
-  el.style.height = '0'
-  el.style.opacity = '0'
-  el.addEventListener('transitionend', done, { once: true })
-}
 </script>
 
 <template>
@@ -518,33 +479,39 @@ function onBannerLeave(el, done) {
           <button @click="recentProducts.clear(); recentProductList = []" class="text-xs font-black text-base-content/30 hover:text-error transition-colors">전체 삭제</button>
         </div>
         <div class="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
-          <RouterLink
+          <div
             v-for="item in recentProductList"
             :key="item.id"
-            :to="`/products/${item.id}`"
-            class="shrink-0 w-32 card bg-base-100 border border-base-300/20 rounded-[20px] overflow-hidden hover:shadow-md hover:-translate-y-1 transition-all group"
+            class="relative shrink-0 w-40"
           >
-            <div class="aspect-square bg-base-200 overflow-hidden">
-              <img v-if="item.thumbnailPath" :src="resolveImageUrl(item.thumbnailPath)" alt="" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-              <div v-else class="w-full h-full flex items-center justify-center text-3xl opacity-20">🎨</div>
-            </div>
-            <div class="p-3">
-              <p class="text-xs font-black line-clamp-2 leading-tight mb-1">{{ item.title }}</p>
-              <p v-if="item.price !== null" class="text-xs font-black text-primary">₩{{ Number(item.price).toLocaleString('ko-KR') }}</p>
-            </div>
-          </RouterLink>
+            <RouterLink
+              :to="`/products/${item.id}`"
+              class="block card bg-base-100 border border-base-300/20 rounded-[20px] overflow-hidden hover:shadow-md hover:-translate-y-1 transition-all group"
+            >
+              <div class="aspect-[4/3] bg-base-200 overflow-hidden">
+                <img v-if="item.thumbnailPath" :src="resolveImageUrl(item.thumbnailPath)" alt="" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                <div v-else class="w-full h-full flex items-center justify-center text-3xl opacity-20">🎨</div>
+              </div>
+              <div class="p-3">
+                <p class="text-xs font-black line-clamp-2 leading-tight mb-1">{{ item.title }}</p>
+                <p v-if="item.price !== null" class="text-xs font-black text-primary">₩{{ Number(item.price).toLocaleString('ko-KR') }}</p>
+              </div>
+            </RouterLink>
+            <button
+              @click="removeRecentProduct(item.id)"
+              class="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-base-300/80 hover:bg-error hover:text-white text-base-content/50 flex items-center justify-center transition-colors backdrop-blur-sm"
+              aria-label="삭제"
+            >
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
-      <!-- Banner Carousel (검색 중엔 슬라이드 업) -->
-      <transition
-        @before-enter="onBannerBeforeEnter"
-        @enter="onBannerEnter"
-        @after-enter="onBannerAfterEnter"
-        @before-leave="onBannerBeforeLeave"
-        @leave="onBannerLeave"
-      >
-        <div v-if="!searchQuery && !scrolled">
+      <!-- Banner Carousel -->
+      <div v-if="!searchQuery">
           <div class="mb-4">
             <h2 class="text-xl font-black text-base-content">🔥 잡아 클래스 소식</h2>
           </div>
@@ -554,9 +521,10 @@ function onBannerLeave(el, done) {
                 :key="bannerIndex"
                 :src="banners[bannerIndex].src"
                 :alt="banners[bannerIndex].alt"
-                class="w-full object-cover aspect-[16/9]"
+                class="w-full object-cover aspect-[21/9]"
               />
             </transition>
+
 
             <!-- 좌 화살표 -->
             <button
@@ -593,7 +561,6 @@ function onBannerLeave(el, done) {
 
           <hr class="mb-12 border-base-300/50" />
         </div>
-      </transition>
 
       <!-- Error -->
       <div v-if="errorMessage" role="alert" class="alert bg-error/10 border-none text-error mb-8 rounded-2xl animate-in fade-in slide-in-from-top-4">
