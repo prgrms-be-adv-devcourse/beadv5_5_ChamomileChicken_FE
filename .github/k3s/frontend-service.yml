@@ -72,24 +72,7 @@ spec:
   ports:
     - port: 3000
       targetPort: 3000
-      nodePort: 30080
       protocol: TCP
-  type: NodePort
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: frontend-ingress
-spec:
-  ingressClassName: traefik
-  rules:
-    - http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: frontend-service
-                port:
-                  number: 3000
+  type: ClusterIP
+
 
