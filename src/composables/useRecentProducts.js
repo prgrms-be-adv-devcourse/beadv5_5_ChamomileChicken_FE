@@ -19,9 +19,13 @@ export function useRecentProducts() {
     localStorage.setItem(KEY, JSON.stringify(list.slice(0, MAX)))
   }
 
+  function remove(id) {
+    localStorage.setItem(KEY, JSON.stringify(getAll().filter(p => p.id !== id)))
+  }
+
   function clear() {
     localStorage.removeItem(KEY)
   }
 
-  return { getAll, add, clear }
+  return { getAll, add, remove, clear }
 }
