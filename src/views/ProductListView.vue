@@ -30,7 +30,7 @@ const recommendationStatus = ref('')
 const recommendationPolling = ref(false)
 const searchQuery = ref('')
 const currentPage = ref(0)
-const pageSize = ref(16)
+const pageSize = ref(18)
 const totalPage = ref(0)
 const totalCount = ref(0)
 
