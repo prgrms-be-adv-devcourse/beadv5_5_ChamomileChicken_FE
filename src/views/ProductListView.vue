@@ -336,6 +336,7 @@ const bannerIndex = ref(0)
 let bannerTimer = null
 
 function startBannerAuto() {
+  clearInterval(bannerTimer)
   bannerTimer = setInterval(() => {
     bannerIndex.value = (bannerIndex.value + 1) % banners.length
   }, 5000)
