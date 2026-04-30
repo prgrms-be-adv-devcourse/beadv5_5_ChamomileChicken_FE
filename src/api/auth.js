@@ -9,4 +9,7 @@ export const authApi = {
 
   reissue: () =>
     api.post('/auth/reissue'),
+
+  reportTheft: (token) =>
+    api.post(`/auth/report-theft?token=${token}`),
 }
