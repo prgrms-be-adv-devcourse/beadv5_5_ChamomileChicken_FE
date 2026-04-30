@@ -134,6 +134,11 @@ const routes = [
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
+    path: '/security/report-theft',
+    name: 'ReportTheft',
+    component: () => import('@/views/security/ReportTheftView.vue'),
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@/views/NotFoundView.vue'),
