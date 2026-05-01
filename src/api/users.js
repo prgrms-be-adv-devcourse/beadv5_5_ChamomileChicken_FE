@@ -4,6 +4,9 @@ export const usersApi = {
   getMe: () =>
     api.get('/users/me'),
 
+  upsertSellerSettlementAccount: ({ bankCode, accountNumber, accountHolder, active }) =>
+    api.put('/users/me/seller-settlement-account', { bankCode, accountNumber, accountHolder, active }),
+
   updateMe: (name, phone) =>
     api.put('/users/me', { name, phone }),
 
