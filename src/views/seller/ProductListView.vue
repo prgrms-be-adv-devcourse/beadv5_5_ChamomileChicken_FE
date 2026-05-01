@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { productsApi } from '@/api/products'
 import { authApi } from '@/api/auth'
+import { usersApi } from '@/api/users'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { resolveImageUrl } from '@/utils/imageUrl'
 
@@ -14,6 +15,15 @@ const products = ref([])
 const loading = ref(true)
 const deletingId = ref(null)
 const loadError = ref('')
+const settlementAccountModalOpen = ref(false)
+const savingSettlementAccount = ref(false)
+const savedSettlementAccount = ref(null)
+const settlementAccountForm = ref({
+  bankCode: '',
+  accountNumber: '',
+  accountHolder: '',
+  active: true,
+})
 
 onMounted(async () => {
   if (!auth.user) await auth.fetchUser()
@@ -57,6 +67,50 @@ async function logout() {
   router.push('/login')
 }
 
+function openSettlementAccountModal() {
+  settlementAccountForm.value = {
+    bankCode: savedSettlementAccount.value?.bankCode ?? '',
+    accountNumber: savedSettlementAccount.value?.accountNumber ?? '',
+    accountHolder: savedSettlementAccount.value?.accountHolder ?? auth.user?.name ?? '',
+    active: savedSettlementAccount.value?.active ?? true,
+  }
+  settlementAccountModalOpen.value = true
+}
+
+function closeSettlementAccountModal() {
+  if (savingSettlementAccount.value) return
+  settlementAccountModalOpen.value = false
+}
+
+async function submitSettlementAccount() {
+  const bankCode = settlementAccountForm.value.bankCode.trim()
+  const accountNumber = settlementAccountForm.value.accountNumber.trim()
+  const accountHolder = settlementAccountForm.value.accountHolder.trim()
+
+  if (!bankCode || !accountNumber || !accountHolder) {
+    alert('은행 코드, 계좌번호, 예금주를 모두 입력해 주세요.')
+    return
+  }
+
+  savingSettlementAccount.value = true
+  try {
+    const res = await usersApi.upsertSellerSettlementAccount({
+      bankCode,
+      accountNumber,
+      accountHolder,
+      active: Boolean(settlementAccountForm.value.active),
+    })
+
+    savedSettlementAccount.value = res.data?.data ?? res.data ?? null
+    settlementAccountModalOpen.value = false
+    alert('정산 계좌가 저장되었습니다.')
+  } catch (e) {
+    alert(e.response?.data?.message || '정산 계좌 저장에 실패했습니다.')
+  } finally {
+    savingSettlementAccount.value = false
+  }
+}
+
 function formatPrice(p) { return Number(p).toLocaleString('ko-KR') }
 </script>
 
@@ -92,6 +146,12 @@ function formatPrice(p) { return Number(p).toLocaleString('ko-KR') }
           <p class="text-base-content/40 font-bold">등록하신 클래스를 한눈에 확인하고 관리하세요.</p>
         </div>
         <div class="flex gap-3">
+          <button
+            @click="openSettlementAccountModal"
+            class="btn bg-base-100 hover:bg-base-300 border-none rounded-2xl px-6 font-black transition-all"
+          >
+            🏦 정산 계좌 등록 / 수정
+          </button>
           <RouterLink to="/seller/settlements" class="btn bg-base-100 hover:bg-base-300 border-none rounded-2xl px-6 font-black transition-all">
             💰 정산 확인
           </RouterLink>
@@ -158,6 +218,81 @@ function formatPrice(p) { return Number(p).toLocaleString('ko-KR') }
           </div>
         </div>
       </div>
+    </div>
+
+    <div v-if="settlementAccountModalOpen" class="modal modal-open backdrop-blur-md">
+      <div class="modal-box rounded-[32px] sm:rounded-[40px] p-6 sm:p-8 shadow-2xl border border-base-300/30 max-w-xl">
+        <div class="flex items-start justify-between gap-4 mb-6">
+          <div>
+            <h3 class="text-2xl font-black text-base-content">정산 계좌 등록 / 수정</h3>
+            <p class="text-sm text-base-content/50 font-bold mt-2">
+              seller 또는 admin 계정의 정산 계좌를 등록하거나 수정합니다.
+            </p>
+          </div>
+          <button @click="closeSettlementAccountModal" class="btn btn-ghost btn-sm rounded-full">✕</button>
+        </div>
+
+        <div class="space-y-4">
+          <label class="form-control w-full">
+            <div class="label pb-2">
+              <span class="label-text font-black text-base-content/70">은행 코드</span>
+            </div>
+            <input
+              v-model="settlementAccountForm.bankCode"
+              type="text"
+              placeholder="예: 004"
+              class="input input-bordered rounded-2xl w-full"
+            />
+          </label>
+
+          <label class="form-control w-full">
+            <div class="label pb-2">
+              <span class="label-text font-black text-base-content/70">계좌번호</span>
+            </div>
+            <input
+              v-model="settlementAccountForm.accountNumber"
+              type="text"
+              placeholder="계좌번호를 입력해 주세요"
+              class="input input-bordered rounded-2xl w-full"
+            />
+          </label>
+
+          <label class="form-control w-full">
+            <div class="label pb-2">
+              <span class="label-text font-black text-base-content/70">예금주</span>
+            </div>
+            <input
+              v-model="settlementAccountForm.accountHolder"
+              type="text"
+              placeholder="예금주명을 입력해 주세요"
+              class="input input-bordered rounded-2xl w-full"
+            />
+          </label>
+
+          <label class="label justify-start gap-3 cursor-pointer rounded-2xl bg-base-200/70 px-4 py-4 mt-2">
+            <input v-model="settlementAccountForm.active" type="checkbox" class="toggle toggle-primary" />
+            <div>
+              <span class="label-text font-black text-base-content">정산 계좌 활성화</span>
+              <p class="text-xs text-base-content/50 font-bold mt-1">비활성화하면 송금 대상에서 제외될 수 있습니다.</p>
+            </div>
+          </label>
+
+          <div class="rounded-2xl bg-base-200/60 px-4 py-4 text-sm text-base-content/60 font-bold">
+            기존 계좌가 이미 등록되어 있다면, 입력한 값으로 수정됩니다.
+          </div>
+        </div>
+
+        <div class="modal-action mt-8 flex-col sm:flex-row">
+          <button @click="closeSettlementAccountModal" class="btn btn-outline rounded-2xl flex-1" :disabled="savingSettlementAccount">
+            취소
+          </button>
+          <button @click="submitSettlementAccount" class="btn btn-primary rounded-2xl flex-1" :disabled="savingSettlementAccount">
+            <span v-if="savingSettlementAccount" class="loading loading-spinner loading-sm"></span>
+            <span v-else>저장</span>
+          </button>
+        </div>
+      </div>
+      <div class="modal-backdrop bg-base-content/20" @click="closeSettlementAccountModal"></div>
     </div>
   </div>
 </template>
